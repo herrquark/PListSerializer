@@ -88,7 +88,5 @@ public class PListCollectionsSerializeTests
             Assert.That(((array2[0] as DictionaryNode)["Id"] as StringNode).Value, Is.EqualTo("20"));
             Assert.That(((array2[1] as DictionaryNode)["Id"] as StringNode).Value, Is.EqualTo("21"));
         });
-
-        var s = PList.SaveToString(res, writePlistMeta: false);
     }
 }

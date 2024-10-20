@@ -1,43 +1,33 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
+﻿using System.Reflection;
 using PListSerializer.Core.Attributes;
 
-namespace PListSerializer.Core.Extensions
+namespace PListSerializer.Core.Extensions;
+
+static class PropertyInfoExtensions
 {
-    static class PropertyInfoExtensions
+    public static string GetName(this PropertyInfo propertyInfo)
     {
-        public static string GetName(this PropertyInfo propertyInfo)
-        {
-            var result = propertyInfo?
-                .GetCustomAttributes(typeof(PlistNameAttribute), false)
-                .Cast<PlistNameAttribute>()
-                .FirstOrDefault();
+        var result = propertyInfo?
+            .GetCustomAttributes(typeof(PlistNameAttribute), false)
+            .Cast<PlistNameAttribute>()
+            .FirstOrDefault();
 
-            return result?.Description ?? propertyInfo?.Name;
-        }
+        return result?.Description ?? propertyInfo?.Name;
+    }
 
-        public static bool IsDictionary(this PropertyInfo property)
-        {
-            return property.PropertyType.IsDictionary();
-        }
+    public static bool IsDictionary(this PropertyInfo property)
+        => property.PropertyType.IsDictionary();
 
-        public static HashSet<Type> GetGenericSubTypes(this PropertyInfo propertyInfo)
-        {
-            var result = new HashSet<Type>();
-            var propertyType = propertyInfo.PropertyType;
-            if (propertyType.IsArray)
-            {
-                var elementType = propertyType.GetElementType();
-                result.Add(elementType);
-            }
-            else if (propertyType.IsDictionary() || propertyType.IsList())
-            {
-                result = propertyType.GenericTypeArguments.ToHashSet();
-            }
+    public static HashSet<Type> GetGenericSubTypes(this PropertyInfo propertyInfo)
+    {
+        var result = new HashSet<Type>();
+        var propertyType = propertyInfo.PropertyType;
 
-            return result;
-        }
+        if (propertyType.IsArray)
+            result.Add(propertyType.GetElementType());
+        else if (propertyType.IsDictionary() || propertyType.IsList())
+            result = [.. propertyType.GenericTypeArguments];
+
+        return result;
     }
 }

@@ -1,11 +1,7 @@
 ﻿using System.ComponentModel;
 
-namespace PListSerializer.Core.Attributes
+namespace PListSerializer.Core.Attributes;
+
+public class PlistNameAttribute(string name) : DescriptionAttribute(name)
 {
-    public class PlistNameAttribute : DescriptionAttribute
-    {
-        public PlistNameAttribute(string name) : base(name)
-        {
-        }
-    }
 }

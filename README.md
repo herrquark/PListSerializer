@@ -1,4 +1,4 @@
 # PListSerializer
 PList Deserializer
 
-https://www.nuget.org/packages/PListDeserializer/1.0.8
+Based on the [PListSerializer](https://github.com/maksgithub/PListSerializer) project.

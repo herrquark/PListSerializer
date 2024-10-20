@@ -4,7 +4,7 @@
     <OutputType>Library</OutputType>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <TargetFramework>netstandard2.1</TargetFramework>
     <Description>PList Serializer/Deserializer</Description>
     <Copyright>Copyright © 2024</Copyright>
@@ -37,6 +37,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="PListNet.Quark" Version="3.4.2" />
+    <PackageReference Include="PListNet.Quark" Version="3.4.3" />
   </ItemGroup>
 </Project>

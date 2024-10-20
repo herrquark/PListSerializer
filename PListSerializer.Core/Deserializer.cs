@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using PListNet;
+﻿using PListNet;
 using PListSerializer.Core.Converters;
 using PListSerializer.Core.Extensions;
 
@@ -30,8 +27,15 @@ namespace PListSerializer.Core
             var outType = typeof(TOut);
             var converter = GetOrBuildConverter(outType);
             var typedConverter = (IPlistConverter<TOut>)converter;
-            var deserialize = typedConverter.Deserialize(source);
-            return deserialize;
+            return typedConverter.Deserialize(source);
+        }
+
+        public PNode Serialize<TObj>(TObj obj)
+        {
+            var objType = typeof(TObj);
+            var converter = GetOrBuildConverter(objType);
+            var typedConverter = (IPlistConverter<TObj>)converter;
+            return typedConverter.Serialize(obj);
         }
 
         private IPlistConverter GetOrBuildConverter(Type type)

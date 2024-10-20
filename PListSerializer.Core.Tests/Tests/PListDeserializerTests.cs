@@ -1,13 +1,14 @@
 ﻿using System.IO;
 using System.Text;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using PListNet;
 using PListNet.Nodes;
 using PListSerializer.Core.Tests.TestsModels;
 
 namespace PListSerializer.Core.Tests.Tests
 {
-    [TestFixture]
+    [TestFixture()]
     public class PListDeserializerTests
     {
         private Deserializer _deserializer;
@@ -43,19 +44,23 @@ namespace PListSerializer.Core.Tests.Tests
             node.Add("DictionarySameType3", dictionaryNode);
 
             var res = _deserializer.Deserialize<BigObject>(node);
-            Assert.IsNotNull(res.Array0);
-            Assert.IsNotNull(res.Array1);
-            Assert.IsNotNull(res.Array2);
+            Assert.Multiple(() =>
+            {
+                Assert.That(res.Array0, Is.Not.Null);
+                Assert.That(res.Array1, Is.Not.Null);
+                Assert.That(res.Array2, Is.Not.Null);
 
-            Assert.IsNotNull(res.Dictionary0);
-            Assert.IsNotNull(res.Dictionary1);
-            Assert.IsNotNull(res.Dictionary2);
-            Assert.IsNotNull(res.Dictionary3);
+                Assert.That(res.Dictionary0, Is.Not.Null);
+                Assert.That(res.Dictionary1, Is.Not.Null);
+                Assert.That(res.Dictionary2, Is.Not.Null);
+                Assert.That(res.Dictionary3, Is.Not.Null);
 
-            Assert.IsNotNull(res.Ints1);
-            Assert.IsNotNull(res.List0);
-            Assert.IsNotNull(res.List1);
-            Assert.IsNotNull(res.List2);
+                Assert.That(res.Ints1, Is.Not.Null);
+                Assert.That(res.List0, Is.Not.Null);
+                Assert.That(res.List1, Is.Not.Null);
+                Assert.That(res.List2, Is.Not.Null);
+            });
+
         }
 
         [TestCase]
@@ -81,52 +86,69 @@ namespace PListSerializer.Core.Tests.Tests
             node.Add("DictionarySameType3", dictionaryNode);
 
             var res = _deserializer.Deserialize<ClassWithSameTypes>(node);
-            Assert.IsNotNull(res.ArraySameType);
-            Assert.IsNotNull(res.ArraySameType2);
-            Assert.IsNotNull(res.ArraySameType);
-            Assert.IsNotNull(res.ClassSameType);
-            Assert.IsNotNull(res.ClassSameType2);
-            Assert.IsNotNull(res.ClassSameType3);
-            Assert.IsNotNull(res.DictionarySameType);
-            Assert.IsNotNull(res.DictionarySameType2);
+            Assert.Multiple(() =>
+            {
+                Assert.That(res.ArraySameType, Is.Not.Null);
+                Assert.That(res.ArraySameType2, Is.Not.Null);
 
-            Assert.IsNotNull(res.List1);
-            Assert.IsNotNull(res.List2);
-            Assert.IsNotNull(res.List3);
+                Assert.That(res.ClassSameType, Is.Not.Null);
+                Assert.That(res.ClassSameType2, Is.Not.Null);
+                Assert.That(res.ClassSameType3, Is.Not.Null);
+
+                Assert.That(res.DictionarySameType, Is.Not.Null);
+                Assert.That(res.DictionarySameType2, Is.Not.Null);
+
+                Assert.That(res.List1, Is.Not.Null);
+                Assert.That(res.List2, Is.Not.Null);
+                Assert.That(res.List3, Is.Not.Null);
+            });
         }
 
         [TestCase]
         public void Deserialize_Effect_Test()
         {
-            var byteArray = Encoding.ASCII.GetBytes(Resources.Plist2);
+            var byteArray = File.ReadAllBytes(Path.Combine(TestContext.CurrentContext.TestDirectory, "Resources", "PList2.plist"));
             var stream = new MemoryStream(byteArray);
             var node = PList.Load(stream);
             var r = _deserializer.Deserialize<RootPList>(node);
-            Assert.IsNotNull(r);
-            Assert.AreEqual("Custom", r.GroupIdentifier);
-            Assert.AreEqual("Clarity Booster - 2018.lmp", r.PresetIdentifierKey);
-            Assert.AreEqual(true, r.Hidden);
-            Assert.AreEqual("259F230F-A18A-489C-87FE-024B503E1F5C", r.Id);
-            Assert.IsNotNull(r.AdjustmentLayers);
-            Assert.IsNotNull(r.AdjustmentLayers[0]);
+
+            Assert.That(r, Is.Not.Null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.GroupIdentifier, Is.EqualTo("Custom"));
+                Assert.That(r.PresetIdentifierKey, Is.EqualTo("Clarity Booster - 2018.lmp"));
+                Assert.That(r.Hidden, Is.EqualTo(true));
+                Assert.That(r.Id, Is.EqualTo("259F230F-A18A-489C-87FE-024B503E1F5C"));
+                Assert.That(r.AdjustmentLayers, Is.Not.Null);
+
+            });
+
+            Assert.That(r.AdjustmentLayers[0], Is.Not.Null);
         }
 
         [TestCase]
         public void Serialize_EffectsInfo_Test()
         {
-            var byteArray = Encoding.ASCII.GetBytes(Resources.Plist3);
+            var byteArray = File.ReadAllBytes(Path.Combine(TestContext.CurrentContext.TestDirectory, "Resources", "PList3.plist"));
             var stream = new MemoryStream(byteArray);
             var node = PList.Load(stream);
             var r = _deserializer.Deserialize<EffectsPlist>(node);
-            Assert.IsNotNull(r.AdjustmentLayers);
-            var adjustmentLayer = r.AdjustmentLayers["DevelopAdjustmentLayer"];
 
-            Assert.IsNotNull(adjustmentLayer);
-            Assert.AreEqual("raw_dev2", adjustmentLayer.InfoImageName);
-            Assert.AreEqual("1", adjustmentLayer.Identifier);
-            Assert.IsNotNull(adjustmentLayer.Sublayers);
+            Assert.That(r.AdjustmentLayers, Is.Not.Null);
+            var adjustmentLayer = r.AdjustmentLayers["DevelopAdjustmentLayer"];
+            Assert.That(adjustmentLayer, Is.Not.Null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(adjustmentLayer.InfoImageName, Is.EqualTo("raw_dev2"));
+                Assert.That(adjustmentLayer.Identifier, Is.EqualTo("1"));
+                Assert.That(adjustmentLayer.Sublayers, Is.Not.Null);
+
+            });
+
             Assert.That(adjustmentLayer.Sublayers, Has.Length.EqualTo(4));
-            Assert.IsNotNull(adjustmentLayer.Sublayers[0].EffectsIMG);
+            Assert.That(adjustmentLayer.Sublayers[0].EffectsIMG, Is.Not.Null);
         }
     }
 }

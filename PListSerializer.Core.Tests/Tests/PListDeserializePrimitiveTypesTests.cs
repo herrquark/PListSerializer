@@ -1,6 +1,7 @@
 ﻿using System;
 using NUnit.Framework;
 using NUnit.Framework.Internal;
+using NUnit.Framework.Legacy;
 using PListNet.Nodes;
 
 namespace PListSerializer.Core.Tests.Tests
@@ -23,8 +24,8 @@ namespace PListSerializer.Core.Tests.Tests
         {
             var node = new IntegerNode(source);
             var res = _deserializer.Deserialize<int>(node);
-            Assert.That(res, Is.TypeOf<int>());
-            Assert.AreEqual(source, res);
+            ClassicAssert.That(res, Is.TypeOf<int>());
+            Assert.That(res, Is.EqualTo(source));
         }
 
         [TestCase(42)]
@@ -34,8 +35,8 @@ namespace PListSerializer.Core.Tests.Tests
         {
             var node = new IntegerNode(source);
             var res = _deserializer.Deserialize<long>(node);
-            Assert.That(res, Is.TypeOf<long>());
-            Assert.AreEqual(source, res);
+            ClassicAssert.That(res, Is.TypeOf<long>());
+            Assert.That(res, Is.EqualTo(source));
         }
 
         [TestCase(true)]
@@ -44,8 +45,8 @@ namespace PListSerializer.Core.Tests.Tests
         {
             var node = new BooleanNode(source);
             var res = _deserializer.Deserialize<bool>(node);
-            Assert.That(res, Is.TypeOf<bool>());
-            Assert.AreEqual(source, res);
+            ClassicAssert.That(res, Is.TypeOf<bool>());
+            Assert.That(res, Is.EqualTo(source));
         }
 
         [TestCase("String_42")]
@@ -54,18 +55,19 @@ namespace PListSerializer.Core.Tests.Tests
         {
             var node = new StringNode(source);
             var res = _deserializer.Deserialize<string>(node);
-            Assert.That(res, Is.TypeOf<string>());
-            Assert.AreEqual(source, res);
+            ClassicAssert.That(res, Is.TypeOf<string>());
+            Assert.That(res, Is.EqualTo(source));
         }
 
-        [TestCase()]
+        [TestCase]
         public void Deserialize_String_Test()
         {
             DateTime source = DateTime.MaxValue;
+
             var node = new DateNode(source);
             var res = _deserializer.Deserialize<DateTime>(node);
-            Assert.That(res, Is.TypeOf<DateTime>());
-            Assert.AreEqual(source, res);
+            ClassicAssert.That(res, Is.TypeOf<DateTime>());
+            Assert.That(res, Is.EqualTo(source));
         }
     }
 }

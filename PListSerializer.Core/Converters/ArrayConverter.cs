@@ -1,37 +1,21 @@
-﻿using System.Collections.Generic;
-using PListNet;
+﻿using PListNet;
 using PListNet.Nodes;
 
 namespace PListSerializer.Core.Converters
 {
-    internal sealed class ArrayConverter<TElement> : IPlistConverter<TElement[]>
+    internal sealed class ArrayConverter<TElement>(IPlistConverter<TElement> elementConverter) : IPlistConverter<TElement[]>
     {
-        private readonly IPlistConverter<TElement> _elementConverter;
-
-        public ArrayConverter(IPlistConverter<TElement> elementConverter)
-        {
-            _elementConverter = elementConverter;
-        }
-
         public TElement[] Deserialize(PNode rootNode)
+            => rootNode is ArrayNode arrayNode
+                ? arrayNode.Select(elementConverter.Deserialize).ToArray()
+                : default;
+
+        public PNode Serialize(TElement[] obj)
         {
-            var buffer = new List<TElement>(10);
-            if (!(rootNode is ArrayNode arrayNode))
-            {
-                return default;
-            }
+            var arrayNode = new ArrayNode();
+            arrayNode.AddRange(obj.Select(elementConverter.Serialize));
 
-            using (var enumerator = arrayNode.GetEnumerator())
-            {
-                while (enumerator.MoveNext())
-                {
-                    var pNode = enumerator.Current;
-                    var element = _elementConverter.Deserialize(pNode);
-                    buffer.Add(element);
-                }
-            }
-
-            return buffer.ToArray();
+            return arrayNode;
         }
     }
 }

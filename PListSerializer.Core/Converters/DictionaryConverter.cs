@@ -1,37 +1,23 @@
-﻿using System.Collections.Generic;
-using PListNet;
+﻿using PListNet;
 using PListNet.Nodes;
 
 namespace PListSerializer.Core.Converters
 {
-    internal class DictionaryConverter<TVal> : IPlistConverter<Dictionary<string, TVal>>
+    internal class DictionaryConverter<TVal>(IPlistConverter<TVal> elementConverter) : IPlistConverter<Dictionary<string, TVal>>
     {
-        private readonly IPlistConverter<TVal> _elementConverter;
-
-        public DictionaryConverter(IPlistConverter<TVal> elementConverter)
-        {
-            _elementConverter = elementConverter;
-        }
-
         public Dictionary<string, TVal> Deserialize(PNode rootNode)
+            => rootNode is DictionaryNode dictionaryNode
+                ? dictionaryNode.ToDictionary(k => k.Key, v => elementConverter.Deserialize(v.Value))
+                : default;
+
+        public PNode Serialize(Dictionary<string, TVal> obj)
         {
-            if (!(rootNode is DictionaryNode dictionaryNode))
-            {
-                return default;
-            }
+            var dictionaryNode = new DictionaryNode();
 
-            var result = new Dictionary<string, TVal>();
+            foreach (var (key, value) in obj)
+                dictionaryNode.Add(key, elementConverter.Serialize(value));
 
-            using (var enumerator = dictionaryNode.GetEnumerator())
-            {
-                while (enumerator.MoveNext())
-                {
-                    var token = enumerator.Current;
-                    var element = _elementConverter.Deserialize(token.Value);
-                    result.Add(token.Key, element);
-                }
-            }
-            return result;
+            return dictionaryNode;
         }
     }
 }

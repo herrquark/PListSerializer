@@ -1,5 +1,4 @@
-﻿using PListNet;
-using PListNet.Nodes;
+﻿using PListNet.Nodes;
 using PListSerializer.Core.Tests.TestModels;
 
 namespace PListSerializer.Core.Tests;
@@ -36,7 +35,7 @@ public class PListCollectionsSerializeTests
             new() {Id = "5"}
         };
 
-        var res = new Deserializer().Serialize(arr) as ArrayNode;
+        var res = Serializer.Serialize(arr) as ArrayNode;
         Assert.That(res, Is.Not.Null);
         Assert.That(res, Has.Count.EqualTo(6));
 

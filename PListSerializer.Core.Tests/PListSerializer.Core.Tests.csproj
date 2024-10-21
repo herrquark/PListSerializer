@@ -25,7 +25,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="PListNet.Quark" Version="3.4.3" />
+    <PackageReference Include="PListNet.Quark" Version="3.4.4" />
   </ItemGroup>
   <ItemGroup>
     <None Update="Resources\PList1.plist">

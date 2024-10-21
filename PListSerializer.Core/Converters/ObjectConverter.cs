@@ -9,7 +9,7 @@ namespace PListSerializer.Core.Converters;
 internal class ObjectConverter<TObject> : IPlistConverter<TObject>
 {
     private readonly Func<TObject> _activator;
-    private readonly Dictionary<string, (Action<TObject, PNode> Deserialize, Func<TObject, PNode> Serialize)> _serializationMethods;
+    private readonly Dictionary<string, Action<TObject, PNode>> _deserializationMethods;
 
     public ObjectConverter(Dictionary<PropertyInfo, IPlistConverter> propertyConverters)
     {
@@ -19,9 +19,9 @@ internal class ObjectConverter<TObject> : IPlistConverter<TObject>
             ? throw new Exception($"Default constructor for {typeof(TObject).Name} not found")
             : Expression.Lambda<Func<TObject>>(Expression.New(outInstanceConstructor)).Compile();
 
-        _serializationMethods = propertyConverters.ToDictionary(
+        _deserializationMethods = propertyConverters.ToDictionary(
             pair => pair.Key.GetName(),
-            pair => (Deserialize: BuildDeserializeMethod(pair.Key, pair.Value), Serialize: BuildSerializeMethod(pair.Key, pair.Value))
+            pair => BuildDeserializeMethod(pair.Key, pair.Value)
         );
 
         AddSelfTypeDeserializeMethods();
@@ -38,28 +38,12 @@ internal class ObjectConverter<TObject> : IPlistConverter<TObject>
                 var token = enumerator.Current;
                 var propertyName = token.Key;
 
-                if (_serializationMethods.TryGetValue(propertyName, out var methods))
-                    methods.Deserialize(instance, token.Value);
+                if (_deserializationMethods.TryGetValue(propertyName, out var methods))
+                    methods(instance, token.Value);
             }
         }
 
         return instance;
-    }
-
-    public PNode Serialize(TObject obj)
-    {
-        var dn = new DictionaryNode();
-        foreach (var propertyName in _serializationMethods.Keys)
-        {
-            var propertyValue = typeof(TObject).GetProperty(propertyName)?.GetValue(obj);
-            if (propertyValue == null)
-                continue;
-
-            if (_serializationMethods.TryGetValue(propertyName, out var methods))
-                dn.Add(propertyName, methods.Serialize(obj));
-        }
-
-        return dn;
     }
 
     private static Action<TObject, PNode> BuildDeserializeMethod(PropertyInfo property, IPlistConverter propertyValueConverter)
@@ -78,26 +62,6 @@ internal class ObjectConverter<TObject> : IPlistConverter<TObject>
         var body = Expression.Assign(Expression.Property(instance, property), propertyValue);
         return Expression
             .Lambda<Action<TObject, PNode>>(body, instance, parameter)
-            .Compile();
-    }
-
-    private static Func<TObject, PNode> BuildSerializeMethod(PropertyInfo property, IPlistConverter propertyValueConverter)
-    {
-        const string serializeMethodName = nameof(IPlistConverter<object>.Serialize);
-
-        var obj = Expression.Parameter(typeof(TObject));
-
-        var converterType = propertyValueConverter.GetType();
-        var serializeMethod = converterType.GetMethod(serializeMethodName) ?? throw new InvalidOperationException($"Bad converter for type {property.PropertyType}");
-
-        var propertyValue = Expression.Property(obj, property);
-
-        var converter = Expression.Constant(propertyValueConverter, converterType);
-        var convertCall = Expression.Call(converter, serializeMethod, propertyValue);
-
-        // var body = Expression.Assign(Expression.Property(node, property), propertyValue);
-        return Expression
-            .Lambda<Func<TObject, PNode>>(convertCall, obj)
             .Compile();
     }
 
@@ -165,13 +129,5 @@ internal class ObjectConverter<TObject> : IPlistConverter<TObject>
     }
 
     private void AddDeserializeMethodForProperty(PropertyInfo propertyInfo, IPlistConverter plistConverter)
-    {
-        _serializationMethods.Add(
-            propertyInfo.Name,
-            (
-                Deserialize: BuildDeserializeMethod(propertyInfo, plistConverter),
-                Serialize: BuildSerializeMethod(propertyInfo, plistConverter)
-            )
-        );
-    }
+        => _deserializationMethods.Add(propertyInfo.Name, BuildDeserializeMethod(propertyInfo, plistConverter));
 }

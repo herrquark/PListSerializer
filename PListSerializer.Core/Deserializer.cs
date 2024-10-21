@@ -6,11 +6,11 @@ namespace PListSerializer.Core;
 
 public class Deserializer
 {
-    private readonly Dictionary<Type, IPlistConverter> _converters;
+    internal static Dictionary<Type, IPlistConverter> Converters { get; private set; } = [];
 
-    public Deserializer()
+    static Deserializer()
     {
-        _converters = new Dictionary<Type, IPlistConverter>()
+        Converters = new Dictionary<Type, IPlistConverter>()
         {
             {typeof(bool), new PrimitiveConverter<bool>()},
             {typeof(int), new IntegerConverter()},
@@ -22,6 +22,10 @@ public class Deserializer
         };
     }
 
+    public Deserializer()
+    {
+    }
+
     public TOut Deserialize<TOut>(PNode source)
     {
         var outType = typeof(TOut);
@@ -30,42 +34,24 @@ public class Deserializer
         return typedConverter.Deserialize(source);
     }
 
-    public PNode Serialize<TObj>(TObj obj)
+    internal static IPlistConverter GetOrBuildConverter(Type type)
     {
-        var objType = typeof(TObj);
-        var converter = GetOrBuildConverter(objType);
-        var typedConverter = (IPlistConverter<TObj>)converter;
-        return typedConverter.Serialize(obj);
+        return Converters.GetOrAdd(type, () => BuildConverter(type));
     }
 
-    private IPlistConverter GetOrBuildConverter(Type type)
+    internal static IPlistConverter BuildConverter(Type type)
     {
-        return _converters.GetOrAdd(type, () => BuildConverter(type));
+        return type switch
+        {
+            _ when type.IsDictionary() => BuildDictionaryConverter(type),
+            _ when type.IsArray => BuildArrayConverter(type),
+            _ when type.IsList() => BuildListConverter(type),
+            _ when type.IsEnum => BuildEnumConverter(type),
+            _ => BuildObjectConverter(type)
+        };
     }
 
-    private IPlistConverter BuildConverter(Type type)
-    {
-        if (type.IsDictionary())
-        {
-            var dictionaryConverter = BuildDictionaryConverter(type);
-            return dictionaryConverter;
-        }
-        else if (type.IsArray)
-        {
-            var arrayConverter = BuildArrayConverter(type);
-            return arrayConverter;
-        }
-        else if (type.IsList())
-        {
-            var arrayConverter = BuildListConverter(type);
-            return arrayConverter;
-        }
-
-        var objectConverter = BuildObjectConverter(type);
-        return objectConverter;
-    }
-
-    private IPlistConverter BuildDictionaryConverter(Type type)
+    internal static IPlistConverter BuildDictionaryConverter(Type type)
     {
         var valueType = type.GenericTypeArguments[1];
         var valueConverter = GetOrBuildConverter(valueType);
@@ -74,7 +60,7 @@ public class Deserializer
         return dictionaryConverter;
     }
 
-    private IPlistConverter BuildArrayConverter(Type type)
+    internal static IPlistConverter BuildArrayConverter(Type type)
     {
         var valueType = type.GetElementType();
         var arrayElementConverter = GetOrBuildConverter(valueType);
@@ -83,7 +69,7 @@ public class Deserializer
         return arrayConverter;
     }
 
-    private IPlistConverter BuildListConverter(Type type)
+    internal static IPlistConverter BuildListConverter(Type type)
     {
         var valueType = type.GenericTypeArguments[0];
         var arrayElementConverter = GetOrBuildConverter(valueType);
@@ -92,7 +78,7 @@ public class Deserializer
         return arrayConverter;
     }
 
-    private IPlistConverter BuildObjectConverter(Type type)
+    internal static IPlistConverter BuildObjectConverter(Type type)
     {
         var properties = type.GetProperties();
 
@@ -105,4 +91,7 @@ public class Deserializer
         var plistConverter = (IPlistConverter)Activator.CreateInstance(objectConverterType, propertyInfos);
         return plistConverter;
     }
+
+    internal static IPlistConverter BuildEnumConverter(Type type)
+        => (IPlistConverter)Activator.CreateInstance(typeof(EnumConverter<>).MakeGenericType(type));
 }

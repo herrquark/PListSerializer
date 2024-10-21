@@ -9,12 +9,4 @@ class ListConverter<TVal>(IPlistConverter<TVal> elementConverter) : IPlistConver
         => rootNode is ArrayNode arrayNode
             ? arrayNode.Select(elementConverter.Deserialize).ToList()
             : default;
-
-    public PNode Serialize(List<TVal> obj)
-    {
-        var arrayNode = new ArrayNode();
-        arrayNode.AddRange(obj.Select(elementConverter.Serialize));
-
-        return arrayNode;
-    }
 }

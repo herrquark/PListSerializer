@@ -9,12 +9,4 @@ internal sealed class ArrayConverter<TElement>(IPlistConverter<TElement> element
         => rootNode is ArrayNode arrayNode
             ? arrayNode.Select(elementConverter.Deserialize).ToArray()
             : default;
-
-    public PNode Serialize(TElement[] obj)
-    {
-        var arrayNode = new ArrayNode();
-        arrayNode.AddRange(obj.Select(elementConverter.Serialize));
-
-        return arrayNode;
-    }
 }

@@ -1,6 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
     <OutputType>Library</OutputType>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 
@@ -37,6 +36,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="PListNet.Quark" Version="3.4.3" />
+    <PackageReference Include="PListNet.Quark" Version="3.4.4" />
   </ItemGroup>
 </Project>

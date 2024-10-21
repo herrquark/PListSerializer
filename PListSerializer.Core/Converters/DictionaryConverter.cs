@@ -9,14 +9,4 @@ internal class DictionaryConverter<TVal>(IPlistConverter<TVal> elementConverter)
         => rootNode is DictionaryNode dictionaryNode
             ? dictionaryNode.ToDictionary(k => k.Key, v => elementConverter.Deserialize(v.Value))
             : default;
-
-    public PNode Serialize(Dictionary<string, TVal> obj)
-    {
-        var dictionaryNode = new DictionaryNode();
-
-        foreach (var (key, value) in obj)
-            dictionaryNode.Add(key, elementConverter.Serialize(value));
-
-        return dictionaryNode;
-    }
 }

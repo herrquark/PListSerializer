@@ -29,7 +29,12 @@ internal class ObjectConverter<TObject> : IPlistConverter<TObject>
 
     public TObject Deserialize(PNode rootNode)
     {
-        var instance = _activator();
+        var resolvedType = typeof(TObject).GetResolver()?.ResolveType(rootNode);
+
+        var instance = resolvedType is not null
+            ? (TObject)Activator.CreateInstance(resolvedType)
+            : _activator();
+
         if (rootNode is DictionaryNode dictionaryNode)
         {
             using var enumerator = dictionaryNode.GetEnumerator();

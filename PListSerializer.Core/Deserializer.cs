@@ -7,6 +7,7 @@ namespace PListSerializer.Core;
 public class Deserializer
 {
     internal static Dictionary<Type, IPlistConverter> Converters { get; private set; } = [];
+    internal static Dictionary<Type, IPlistTypeResolver> TypeResolvers { get; private set; } = [];
 
     static Deserializer()
     {
@@ -20,6 +21,16 @@ public class Deserializer
             {typeof(byte[]), new PrimitiveConverter<byte[]>()},
             {typeof(DateTime), new PrimitiveConverter<DateTime>()},
         };
+
+        //Assembly.GetEntryAssembly()
+        //    .GetTypes()
+        //    .Where(x => x.IsClass && !x.IsAbstract && x.GetInterfaces().Contains(typeof(IPlistTypeResolver<>)))
+        //    .ToList()
+        //    .ForEach(x =>
+        //    {
+        //        var instance = (IPlistTypeResolver)Activator.CreateInstance(x);
+        //        TypeResolvers.Add(x.GenericTypeArguments[0], instance);
+        //    });
     }
 
     public Deserializer()

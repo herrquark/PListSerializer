@@ -15,6 +15,7 @@
   <ItemGroup>
     <ProjectReference Include="..\PListSerializer.Core\PListSerializer.Core.csproj" />
   </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="MSTest.TestAdapter" Version="3.6.1" />

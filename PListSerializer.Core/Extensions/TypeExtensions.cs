@@ -1,4 +1,6 @@
-﻿namespace PListSerializer.Core.Extensions;
+﻿using PListSerializer.Core.Attributes;
+
+namespace PListSerializer.Core.Extensions;
 
 internal static class TypeExtensions
 {
@@ -14,5 +16,20 @@ internal static class TypeExtensions
         return type != null &&
                type.IsGenericType &&
                type.GetGenericTypeDefinition().IsAssignableFrom(typeof(Dictionary<,>));
+    }
+
+
+    private static Dictionary<Type, IPlistTypeResolver> ResolverCache { get; set; } = [];
+
+    public static IPlistTypeResolver GetResolver(this Type type)
+    {
+        var attr = type
+            .GetCustomAttributes(typeof(PlistTypeResolverAttribute), false)
+            .Cast<PlistTypeResolverAttribute>()
+            .FirstOrDefault();
+
+        return attr is not null
+            ? ResolverCache.GetOrAdd(type, () => (IPlistTypeResolver)Activator.CreateInstance(attr.Resolver))
+            : null;
     }
 }

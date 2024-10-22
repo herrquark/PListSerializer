@@ -1,5 +1,7 @@
-﻿using PListNet;
+﻿using System.Text;
+using PListNet;
 using PListNet.Nodes;
+using PListSerializer.Core.Attributes;
 using PListSerializer.Core.Tests.TestModels;
 
 namespace PListSerializer.Core.Tests;
@@ -146,4 +148,107 @@ public class PListDeserializerTests
         Assert.That(adjustmentLayer.Sublayers, Has.Length.EqualTo(4));
         Assert.That(adjustmentLayer.Sublayers[0].EffectsIMG, Is.Not.Null);
     }
+
+    [TestCase]
+    public void Deserialize_WithResolver_Test()
+    {
+        var plist = """
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+                    <plist version="1.0">
+                    <dict>
+                        <key>Arr</key>
+                        <array>
+                            <dict>
+                                <key>Type</key>
+                                <string>One</string>
+                                <key>Name_One</key>
+                                <string>This is the one!</string>
+                            </dict>
+                            <dict>
+                                <key>Type</key>
+                                <string>Two</string>
+                                <key>Name_Two</key>
+                                <string>This is the two!</string>
+                            </dict>
+                            <dict>
+                                <key>Type</key>
+                                <string>Three</string>
+                                <key>Name_Three</key>
+                                <string>This is the three!</string>
+                            </dict>
+                            <dict>
+                                <key>Type</key>
+                                <string>OHNO!</string>
+                                <key>Name_Three</key>
+                                <string>This is the three!</string>
+                            </dict>
+                        </array>
+                        <key>Lst</key>
+                        <array>
+                            <dict>
+                                <key>Type</key>
+                                <string>One</string>
+                                <key>Name_One</key>
+                                <string>This is the one!</string>
+                            </dict>
+                            <dict>
+                                <key>Type</key>
+                                <string>Two</string>
+                                <key>Name_Two</key>
+                                <string>This is the two!</string>
+                            </dict>
+                            <dict>
+                                <key>Type</key>
+                                <string>Three</string>
+                                <key>Name_Three</key>
+                                <string>This is the three!</string>
+                            </dict>
+                            <dict>
+                                <key>Type</key>
+                                <string>OHNO!</string>
+                                <key>Name_Three</key>
+                                <string>This is the three!</string>
+                            </dict>
+                        </array>
+                        <key>Cls</key>
+                        <dict>
+                            <key>Type</key>
+                            <string>Three</string>
+                            <key>Name_Three</key>
+                            <string>This is the three!</string>
+                        </dict>
+                    </dict>
+                    </plist>
+                    """;
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(plist));
+        var rootNode = PList.Load(stream);
+
+        var root = _deserializer.Deserialize<ResolverTestClass>(rootNode);
+
+        Assert.That(root, Is.Not.Null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(root.Arr, Has.Length.EqualTo(4));
+            Assert.That(root.Arr[0], Is.InstanceOf<ResolverTestOne>());
+            Assert.That(root.Arr[1], Is.InstanceOf<ResolverTestTwo>());
+            Assert.That(root.Arr[2], Is.InstanceOf<ResolverTestThree>());
+            Assert.That(root.Arr[3], Is.InstanceOf<ResolverTestBaseClass>());
+        });
+
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(root.Lst, Has.Count.EqualTo(4));
+            Assert.That(root.Lst[0], Is.InstanceOf<ResolverTestOne>());
+            Assert.That(root.Lst[1], Is.InstanceOf<ResolverTestTwo>());
+            Assert.That(root.Lst[2], Is.InstanceOf<ResolverTestThree>());
+            Assert.That(root.Lst[3], Is.InstanceOf<ResolverTestBaseClass>());
+        });
+
+        Assert.That(root.Cls, Is.InstanceOf<ResolverTestThree>());
+    }
 }
+

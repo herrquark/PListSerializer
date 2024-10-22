@@ -3,7 +3,7 @@
     <OutputType>Library</OutputType>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 
-    <Version>1.3.0</Version>
+    <Version>1.3.1</Version>
     <TargetFramework>netstandard2.1</TargetFramework>
     <Description>PList Serializer/Deserializer</Description>
     <Copyright>Copyright © 2024</Copyright>
@@ -14,7 +14,6 @@
     <PackageProjectUrl>https://github.com/herrquark/PListSerializer</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/herrquark/PListSerializer.git</RepositoryUrl>
-    <PackageReleaseNotes>Use PListNet.Quark, refactor code</PackageReleaseNotes>
     <PackageLicenseExpression>BSD-2-Clause</PackageLicenseExpression>
     <LangVersion>latest</LangVersion>
     <IsPackable>true</IsPackable>

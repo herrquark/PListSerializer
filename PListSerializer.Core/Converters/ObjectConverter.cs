@@ -8,16 +8,17 @@ namespace PListSerializer.Core.Converters;
 
 internal class ObjectConverter<TObject> : IPlistConverter<TObject>
 {
-    private readonly Func<TObject> _activator;
+    // private readonly Func<TObject> _activator;
     private readonly Dictionary<string, Action<TObject, PNode>> _deserializationMethods;
 
     public ObjectConverter(Dictionary<PropertyInfo, IPlistConverter> propertyConverters)
     {
-        var outInstanceConstructor = typeof(TObject).GetConstructor([]);
+        // var outInstanceConstructor = typeof(TObject).GetConstructor([]);
 
-        _activator = outInstanceConstructor == null
-            ? throw new Exception($"Default constructor for {typeof(TObject).Name} not found")
-            : Expression.Lambda<Func<TObject>>(Expression.New(outInstanceConstructor)).Compile();
+        // _activator = outInstanceConstructor == null
+        //     ? throw new Exception($"Default constructor for {typeof(TObject).Name} not found")
+        //     : Expression.Lambda<Func<TObject>>(Expression.New(outInstanceConstructor)).Compile();
+        // _activator = Expression.Lambda<Func<TObject>>(Expression.New(typeof(TObject))).Compile();
 
         _deserializationMethods = propertyConverters.ToDictionary(
             pair => pair.Key.GetName(),
@@ -31,9 +32,10 @@ internal class ObjectConverter<TObject> : IPlistConverter<TObject>
     {
         var resolvedType = typeof(TObject).GetResolver()?.ResolveType(rootNode);
 
-        var instance = resolvedType is not null
-            ? (TObject)Activator.CreateInstance(resolvedType)
-            : _activator();
+        // var instance = resolvedType is not null
+        //     ? (TObject)Activator.CreateInstance(resolvedType)
+        //     : _activator();
+        var instance = (TObject)Activator.CreateInstance(resolvedType ?? typeof(TObject));
 
         if (rootNode is DictionaryNode dictionaryNode)
         {
@@ -78,6 +80,7 @@ internal class ObjectConverter<TObject> : IPlistConverter<TObject>
         AddSelfTypeDeserializeMethods(properties, type);
         AddSelfArrayTypeDeserializeMethods(properties, type);
         AddSelfListTypeDeserializeMethods(properties, type);
+        AddSelfHashSetTypeDeserializeMethods(properties, type);
         AddSelfDictionaryTypeDeserializeMethods(properties, type);
     }
 
@@ -98,6 +101,21 @@ internal class ObjectConverter<TObject> : IPlistConverter<TObject>
         {
             var elementType = propertyInfo.PropertyType.GenericTypeArguments.FirstOrDefault(x => x == type);
             var dictionaryConverterType = typeof(ListConverter<>).MakeGenericType(elementType);
+            var converter = (IPlistConverter)Activator.CreateInstance(dictionaryConverterType, this);
+            AddDeserializeMethodForProperty(propertyInfo, converter);
+        }
+    }
+
+    private void AddSelfHashSetTypeDeserializeMethods(PropertyInfo[] properties, Type type)
+    {
+        var selfTypeDictionaryProperties = properties
+            .Where(x => x.PropertyType.IsHashSet())
+            .Where(x => x.PropertyType.GenericTypeArguments.Contains(type));
+
+        foreach (var propertyInfo in selfTypeDictionaryProperties)
+        {
+            var elementType = propertyInfo.PropertyType.GenericTypeArguments.FirstOrDefault(x => x == type);
+            var dictionaryConverterType = typeof(HashSetConverter<>).MakeGenericType(elementType);
             var converter = (IPlistConverter)Activator.CreateInstance(dictionaryConverterType, this);
             AddDeserializeMethodForProperty(propertyInfo, converter);
         }

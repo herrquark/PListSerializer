@@ -57,6 +57,7 @@ public class Deserializer
             _ when type.IsDictionary() => BuildDictionaryConverter(type),
             _ when type.IsArray => BuildArrayConverter(type),
             _ when type.IsList() => BuildListConverter(type),
+            _ when type.IsHashSet() => BuildHashSetConverter(type),
             _ when type.IsEnum => BuildEnumConverter(type),
             _ => BuildObjectConverter(type)
         };
@@ -87,6 +88,15 @@ public class Deserializer
         var converterType = typeof(ListConverter<>).MakeGenericType(valueType);
         var arrayConverter = (IPlistConverter)Activator.CreateInstance(converterType, arrayElementConverter);
         return arrayConverter;
+    }
+
+    internal static IPlistConverter BuildHashSetConverter(Type type)
+    {
+        var valueType = type.GenericTypeArguments[0];
+        var hashSetElementConverter = GetOrBuildConverter(valueType);
+        var converterType = typeof(HashSetConverter<>).MakeGenericType(valueType);
+        var hashSetConverter = (IPlistConverter)Activator.CreateInstance(converterType, hashSetElementConverter);
+        return hashSetConverter;
     }
 
     internal static IPlistConverter BuildObjectConverter(Type type)

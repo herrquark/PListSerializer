@@ -25,7 +25,7 @@ static class PropertyInfoExtensions
 
         if (propertyType.IsArray)
             result.Add(propertyType.GetElementType());
-        else if (propertyType.IsDictionary() || propertyType.IsList())
+        else if (propertyType.IsDictionary() || propertyType.IsList() || propertyType.IsHashSet())
             result = [.. propertyType.GenericTypeArguments];
 
         return result;

@@ -20,4 +20,7 @@ public class ClassWithSameTypes : BaseClassWithSameTypes
 
     public List<ClassWithSameTypes> List1 { get; set; }
     public List<ClassWithSameTypes> List2 { get; set; }
+
+    public HashSet<string> HashSetOfStrings { get; set; }
+    public HashSet<ClassWithSameTypes> HashSetOfSelf { get; set; }
 }

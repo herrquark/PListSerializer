@@ -11,6 +11,13 @@ internal static class TypeExtensions
                type.GetGenericTypeDefinition().IsAssignableFrom(typeof(List<>));
     }
 
+    public static bool IsHashSet(this Type type)
+    {
+        return type != null &&
+               type.IsGenericType &&
+               type.GetGenericTypeDefinition().IsAssignableFrom(typeof(HashSet<>));
+    }
+
     public static bool IsDictionary(this Type type)
     {
         return type != null &&

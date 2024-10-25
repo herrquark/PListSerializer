@@ -24,9 +24,10 @@ public class Serializer
             Guid g => new StringNode(g.ToString()),
             _ when obj.GetType().IsPrimitive => new StringNode(obj.ToString()),
             byte[] bytes => new DataNode(bytes),
-            IList list => SerializeList(list),
+            // IList list => SerializeList(list),
             IDictionary dict => SerializeDictionary(dict),
             IEnumerable<KeyValuePair<string, object>> dict => SerializeDictionary(dict),
+            IEnumerable enumerable => SerializeEnumerable(enumerable),
             _ => SerializeComplexType(obj)
         };
     }
@@ -67,7 +68,7 @@ public class Serializer
         return dictNode;
     }
 
-    private static PNode SerializeList(IList list)
+    private static PNode SerializeEnumerable(IEnumerable list)
     {
         var node = new ArrayNode();
         node.AddRange(list.Cast<object>().Select(Serialize));

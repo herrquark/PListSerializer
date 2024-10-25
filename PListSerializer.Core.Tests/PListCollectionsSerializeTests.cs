@@ -32,12 +32,14 @@ public class PListCollectionsSerializeTests
                 ]
             },
             new() {Id = "4"},
-            new() {Id = "5"}
+            new() {Id = "5"},
+            new() {Id = "hss", HashSetOfStrings = ["a", "b", "c"] },
+            new() {Id = "hsc", HashSetOfSelf = [ new() {Id = "hsc1"}, new() {Id = "hsc2"} ] }
         };
 
         var res = Serializer.Serialize(arr) as ArrayNode;
         Assert.That(res, Is.Not.Null);
-        Assert.That(res, Has.Count.EqualTo(6));
+        Assert.That(res, Has.Count.EqualTo(8));
 
         Assert.Multiple(() => {
             Assert.That(res[0], Is.TypeOf<DictionaryNode>());
@@ -87,5 +89,17 @@ public class PListCollectionsSerializeTests
             Assert.That(((array2[0] as DictionaryNode)["Id"] as StringNode).Value, Is.EqualTo("20"));
             Assert.That(((array2[1] as DictionaryNode)["Id"] as StringNode).Value, Is.EqualTo("21"));
         });
+
+        Assert.Multiple(() => {
+            Assert.That((res[6] as DictionaryNode)["HashSetOfStrings"], Is.TypeOf<ArrayNode>());
+            Assert.That((res[7] as DictionaryNode)["HashSetOfSelf"], Is.TypeOf<ArrayNode>());
+
+        });
+
+        var hss = new Deserializer().Deserialize<ClassWithSameTypes>(res[6]);
+        Assert.That(hss.HashSetOfStrings, Is.EquivalentTo(arr[6].HashSetOfStrings));
+
+        var hsc = new Deserializer().Deserialize<ClassWithSameTypes>(res[7]);
+        Assert.That(hsc.HashSetOfSelf.Select(x => x.Id), Is.EquivalentTo(arr[7].HashSetOfSelf.Select(x => x.Id)));
     }
 }

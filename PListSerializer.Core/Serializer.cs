@@ -53,7 +53,12 @@ public class Serializer
         var dictNode = new DictionaryNode();
 
         foreach (var key in dict.Keys)
+        {
+            if (dict[key] is null)
+                continue;
+
             dictNode.Add(key.ToString(), Serialize(dict[key]));
+        }
 
         return dictNode;
     }
@@ -63,7 +68,12 @@ public class Serializer
         var dictNode = new DictionaryNode();
 
         foreach (var kvp in pairs)
+        {
+            if (kvp.Value is null)
+                continue;
+
             dictNode.Add(kvp.Key, Serialize(kvp.Value));
+        }
 
         return dictNode;
     }
@@ -71,7 +81,7 @@ public class Serializer
     private static PNode SerializeEnumerable(IEnumerable list)
     {
         var node = new ArrayNode();
-        node.AddRange(list.Cast<object>().Select(Serialize));
+        node.AddRange(list.Cast<object>().Where(x => x is not null).Select(Serialize));
         return node;
     }
 

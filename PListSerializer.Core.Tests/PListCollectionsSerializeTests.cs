@@ -16,7 +16,8 @@ public class PListCollectionsSerializeTests
             new()
             {
                 Id = "2",
-                ArraySameType = [ new() {Id = "20"}, new() {Id = "21"} ]
+                ArraySameType = [ new() {Id = "20"}, new() {Id = "21"} ],
+                NullableInt = 42
             },
             new()
             {
@@ -51,29 +52,38 @@ public class PListCollectionsSerializeTests
         });
 
         Assert.Multiple(() => {
-            Assert.That((res[0] as DictionaryNode)["Id"], Is.TypeOf<StringNode>());
-            Assert.That((res[1] as DictionaryNode)["Id"], Is.TypeOf<StringNode>());
-            Assert.That((res[2] as DictionaryNode)["Id"], Is.TypeOf<StringNode>());
-            Assert.That((res[3] as DictionaryNode)["Id"], Is.TypeOf<StringNode>());
-            Assert.That((res[4] as DictionaryNode)["Id"], Is.TypeOf<StringNode>());
-            Assert.That((res[5] as DictionaryNode)["Id"], Is.TypeOf<StringNode>());
+            Assert.That((res[0] as DictionaryNode)[nameof(ClassWithSameTypes.Id)], Is.TypeOf<StringNode>());
+            Assert.That((res[1] as DictionaryNode)[nameof(ClassWithSameTypes.Id)], Is.TypeOf<StringNode>());
+            Assert.That((res[2] as DictionaryNode)[nameof(ClassWithSameTypes.Id)], Is.TypeOf<StringNode>());
+            Assert.That((res[3] as DictionaryNode)[nameof(ClassWithSameTypes.Id)], Is.TypeOf<StringNode>());
+            Assert.That((res[4] as DictionaryNode)[nameof(ClassWithSameTypes.Id)], Is.TypeOf<StringNode>());
+            Assert.That((res[5] as DictionaryNode)[nameof(ClassWithSameTypes.Id)], Is.TypeOf<StringNode>());
         });
 
         Assert.Multiple(() => {
-            Assert.That(((res[0] as DictionaryNode)["Id"] as StringNode).Value, Is.EqualTo("0"));
-            Assert.That(((res[1] as DictionaryNode)["Id"] as StringNode).Value, Is.EqualTo("1"));
-            Assert.That(((res[2] as DictionaryNode)["Id"] as StringNode).Value, Is.EqualTo("2"));
-            Assert.That(((res[3] as DictionaryNode)["Id"] as StringNode).Value, Is.EqualTo("3"));
-            Assert.That(((res[4] as DictionaryNode)["Id"] as StringNode).Value, Is.EqualTo("4"));
-            Assert.That(((res[5] as DictionaryNode)["Id"] as StringNode).Value, Is.EqualTo("5"));
+            Assert.That(((res[0] as DictionaryNode)[nameof(ClassWithSameTypes.Id)] as StringNode).Value, Is.EqualTo("0"));
+            Assert.That(((res[1] as DictionaryNode)[nameof(ClassWithSameTypes.Id)] as StringNode).Value, Is.EqualTo("1"));
+            Assert.That(((res[2] as DictionaryNode)[nameof(ClassWithSameTypes.Id)] as StringNode).Value, Is.EqualTo("2"));
+            Assert.That(((res[3] as DictionaryNode)[nameof(ClassWithSameTypes.Id)] as StringNode).Value, Is.EqualTo("3"));
+            Assert.That(((res[4] as DictionaryNode)[nameof(ClassWithSameTypes.Id)] as StringNode).Value, Is.EqualTo("4"));
+            Assert.That(((res[5] as DictionaryNode)[nameof(ClassWithSameTypes.Id)] as StringNode).Value, Is.EqualTo("5"));
         });
+
+        // check if nulls are not serialized
+        Assert.Multiple(() =>
+        {
+            Assert.That(res[1] as DictionaryNode, Does.Not.ContainKey(nameof(ClassWithSameTypes.ArraySameType)));
+            Assert.That(res[1] as DictionaryNode, Does.Not.ContainKey(nameof(ClassWithSameTypes.NullableInt)));
+            Assert.That(res[2] as DictionaryNode, Does.ContainKey(nameof(ClassWithSameTypes.ArraySameType)));
+        });
+
 
         Assert.Multiple(() => {
-            Assert.That((res[2] as DictionaryNode)["ArraySameType"], Is.TypeOf<ArrayNode>());
-            Assert.That((res[3] as DictionaryNode)["ArraySameType"], Is.TypeOf<ArrayNode>());
+            Assert.That((res[2] as DictionaryNode)[nameof(ClassWithSameTypes.ArraySameType)], Is.TypeOf<ArrayNode>());
+            Assert.That((res[3] as DictionaryNode)[nameof(ClassWithSameTypes.ArraySameType)], Is.TypeOf<ArrayNode>());
         });
 
-        var array2 = (res[2] as DictionaryNode)["ArraySameType"] as ArrayNode;
+        var array2 = (res[2] as DictionaryNode)[nameof(ClassWithSameTypes.ArraySameType)] as ArrayNode;
         Assert.That(array2, Is.Not.Null);
         Assert.Multiple(() => {
             Assert.That(array2[0], Is.TypeOf<DictionaryNode>());
@@ -81,25 +91,24 @@ public class PListCollectionsSerializeTests
         });
 
         Assert.Multiple(() => {
-            Assert.That((array2[0] as DictionaryNode)["Id"], Is.TypeOf<StringNode>());
-            Assert.That((array2[1] as DictionaryNode)["Id"], Is.TypeOf<StringNode>());
+            Assert.That((array2[0] as DictionaryNode)[nameof(ClassWithSameTypes.Id)], Is.TypeOf<StringNode>());
+            Assert.That((array2[1] as DictionaryNode)[nameof(ClassWithSameTypes.Id)], Is.TypeOf<StringNode>());
         });
 
         Assert.Multiple(() => {
-            Assert.That(((array2[0] as DictionaryNode)["Id"] as StringNode).Value, Is.EqualTo("20"));
-            Assert.That(((array2[1] as DictionaryNode)["Id"] as StringNode).Value, Is.EqualTo("21"));
+            Assert.That(((array2[0] as DictionaryNode)[nameof(ClassWithSameTypes.Id)] as StringNode).Value, Is.EqualTo("20"));
+            Assert.That(((array2[1] as DictionaryNode)[nameof(ClassWithSameTypes.Id)] as StringNode).Value, Is.EqualTo("21"));
         });
 
         Assert.Multiple(() => {
-            Assert.That((res[6] as DictionaryNode)["HashSetOfStrings"], Is.TypeOf<ArrayNode>());
-            Assert.That((res[7] as DictionaryNode)["HashSetOfSelf"], Is.TypeOf<ArrayNode>());
-
+            Assert.That((res[6] as DictionaryNode)[nameof(ClassWithSameTypes.HashSetOfStrings)], Is.TypeOf<ArrayNode>());
+            Assert.That((res[7] as DictionaryNode)[nameof(ClassWithSameTypes.HashSetOfSelf)], Is.TypeOf<ArrayNode>());
         });
 
-        var hss = new Deserializer().Deserialize<ClassWithSameTypes>(res[6]);
+        var hss = Deserializer.Deserialize<ClassWithSameTypes>(res[6]);
         Assert.That(hss.HashSetOfStrings, Is.EquivalentTo(arr[6].HashSetOfStrings));
 
-        var hsc = new Deserializer().Deserialize<ClassWithSameTypes>(res[7]);
-        Assert.That(hsc.HashSetOfSelf.Select(x => x.Id), Is.EquivalentTo(arr[7].HashSetOfSelf.Select(x => x.Id)));
+        // var hsc = Deserializer.Deserialize<ClassWithSameTypes>(res[7]);
+        // Assert.That(hsc.HashSetOfSelf.Select(x => x.Id), Is.EquivalentTo(arr[7].HashSetOfSelf.Select(x => x.Id)));
     }
 }

@@ -1,118 +1,145 @@
-﻿using PListNet;
-using PListSerializer.Core.Converters;
+using System.Collections;
+using System.ComponentModel;
+using PListNet;
+using PListNet.Nodes;
 using PListSerializer.Core.Extensions;
 
 namespace PListSerializer.Core;
 
 public class Deserializer
 {
-    internal static Dictionary<Type, IPlistConverter> Converters { get; private set; } = [];
-    internal static Dictionary<Type, IPlistTypeResolver> TypeResolvers { get; private set; } = [];
+    public static TOut Deserialize<TOut>(PNode node)
+        => (TOut)Deserialize(typeof(TOut), node);
 
-    static Deserializer()
-    {
-        Converters = new Dictionary<Type, IPlistConverter>()
+    private static object Deserialize(Type type, PNode node)
+        => type switch
         {
-            {typeof(bool), new PrimitiveConverter<bool>()},
-            {typeof(int), new IntegerConverter()},
-            {typeof(long), new PrimitiveConverter<long>()},
-            {typeof(string), new PrimitiveConverter<string>()},
-            {typeof(double), new PrimitiveConverter<double>()},
-            {typeof(byte[]), new PrimitiveConverter<byte[]>()},
-            {typeof(DateTime), new PrimitiveConverter<DateTime>()},
+            _ when type.IsDictionary() => DeserializeDictionary(type, node),
+            _ when type.IsArray => DeserializeArray(type, node),
+            _ when type.IsList() => DeserializeList(type, node),
+            _ when type.IsHashSet() => DeserializeHashSet(type, node),
+            _ when type.IsEnum => DeserializeEnum(type, node),
+
+            _ when node is IntegerNode integerNode => ConvertToType(integerNode.Value, type),
+            _ when node is RealNode realNode => ConvertToType(realNode.Value, type),
+            _ when node is StringNode stringNode => ConvertToType(stringNode.Value, type),
+            _ when node is BooleanNode booleanNode => ConvertToType(booleanNode.Value, type),
+            _ when node is DataNode dataNode => ConvertToType(dataNode.Value, type),
+            _ when node is DateNode dateNode => ConvertToType(dateNode.Value, type),
+
+            _ => DeserializeObject(type, node)
         };
 
-        //Assembly.GetEntryAssembly()
-        //    .GetTypes()
-        //    .Where(x => x.IsClass && !x.IsAbstract && x.GetInterfaces().Contains(typeof(IPlistTypeResolver<>)))
-        //    .ToList()
-        //    .ForEach(x =>
-        //    {
-        //        var instance = (IPlistTypeResolver)Activator.CreateInstance(x);
-        //        TypeResolvers.Add(x.GenericTypeArguments[0], instance);
-        //    });
-    }
-
-    public Deserializer()
+    private static object DeserializeDictionary(Type type, PNode node)
     {
-    }
+        if (node is not DictionaryNode dictionaryNode)
+            return default;
 
-    public TOut Deserialize<TOut>(PNode source)
-    {
-        var outType = typeof(TOut);
-        var converter = GetOrBuildConverter(outType);
-        var typedConverter = (IPlistConverter<TOut>)converter;
-        return typedConverter.Deserialize(source);
-    }
-
-    internal static IPlistConverter GetOrBuildConverter(Type type)
-    {
-        return Converters.GetOrAdd(type, () => BuildConverter(type));
-    }
-
-    internal static IPlistConverter BuildConverter(Type type)
-    {
-        return type switch
-        {
-            _ when type.IsDictionary() => BuildDictionaryConverter(type),
-            _ when type.IsArray => BuildArrayConverter(type),
-            _ when type.IsList() => BuildListConverter(type),
-            _ when type.IsHashSet() => BuildHashSetConverter(type),
-            _ when type.IsEnum => BuildEnumConverter(type),
-            _ => BuildObjectConverter(type)
-        };
-    }
-
-    internal static IPlistConverter BuildDictionaryConverter(Type type)
-    {
         var valueType = type.GenericTypeArguments[1];
-        var valueConverter = GetOrBuildConverter(valueType);
-        var converterType = typeof(DictionaryConverter<>).MakeGenericType(valueType);
-        var dictionaryConverter = (IPlistConverter)Activator.CreateInstance(converterType, valueConverter);
-        return dictionaryConverter;
+        var dictionary = (IDictionary)Activator.CreateInstance(type);
+
+        foreach (var kvp in dictionaryNode)
+        {
+            var key = kvp.Key;
+            var value = kvp.Value;
+
+            dictionary.Add(key.ToString(), Deserialize(valueType, value));
+        }
+
+        return dictionary;
     }
 
-    internal static IPlistConverter BuildArrayConverter(Type type)
+    private static object DeserializeArray(Type type, PNode node)
     {
-        var valueType = type.GetElementType();
-        var arrayElementConverter = GetOrBuildConverter(valueType);
-        var converterType = typeof(ArrayConverter<>).MakeGenericType(valueType);
-        var arrayConverter = (IPlistConverter)Activator.CreateInstance(converterType, arrayElementConverter);
-        return arrayConverter;
+        if (node is not ArrayNode arrayNode)
+            return default;
+
+        var elementType = type.GetElementType();
+        var array = Array.CreateInstance(elementType, arrayNode.Count);
+
+        for (var i = 0; i < arrayNode.Count; i++)
+        {
+            var itemNode = arrayNode[i];
+            array.SetValue(Deserialize(elementType, itemNode), i);
+        }
+
+        return array;
     }
 
-    internal static IPlistConverter BuildListConverter(Type type)
+    private static object DeserializeList(Type type, PNode node)
     {
-        var valueType = type.GenericTypeArguments[0];
-        var arrayElementConverter = GetOrBuildConverter(valueType);
-        var converterType = typeof(ListConverter<>).MakeGenericType(valueType);
-        var arrayConverter = (IPlistConverter)Activator.CreateInstance(converterType, arrayElementConverter);
-        return arrayConverter;
+        if (node is not ArrayNode arrayNode)
+            return default;
+
+        var elementType = type.GenericTypeArguments[0];
+        var list = (IList)Activator.CreateInstance(type);
+
+        foreach (var itemNode in arrayNode)
+            list.Add(Deserialize(elementType, itemNode));
+
+        return list;
     }
 
-    internal static IPlistConverter BuildHashSetConverter(Type type)
+    private static object DeserializeHashSet(Type type, PNode node)
     {
-        var valueType = type.GenericTypeArguments[0];
-        var hashSetElementConverter = GetOrBuildConverter(valueType);
-        var converterType = typeof(HashSetConverter<>).MakeGenericType(valueType);
-        var hashSetConverter = (IPlistConverter)Activator.CreateInstance(converterType, hashSetElementConverter);
-        return hashSetConverter;
+        if (node is not ArrayNode arrayNode)
+            return default;
+
+        var elementType = type.GenericTypeArguments[0];
+        var hashSet = Activator.CreateInstance(type);
+        var addMethod = type.GetMethod("Add");
+
+        foreach (var itemNode in arrayNode)
+            addMethod.Invoke(hashSet, [Deserialize(elementType, itemNode)]);
+
+        return hashSet;
     }
 
-    internal static IPlistConverter BuildObjectConverter(Type type)
+    private static object DeserializeEnum(Type type, PNode node)
     {
-        var properties = type.GetProperties();
+        if (node is not StringNode stringNode)
+            return default;
 
-        var propertyInfos = properties
-            .Where(x => x.PropertyType != type)
-            .Where(x => !x.GetGenericSubTypes().Contains(type))
-            .ToDictionary(p => p, p => GetOrBuildConverter(p.PropertyType));
-
-        var objectConverterType = typeof(ObjectConverter<>).MakeGenericType(type);
-        var plistConverter = (IPlistConverter)Activator.CreateInstance(objectConverterType, propertyInfos);
-        return plistConverter;
+        return Enum.Parse(type, stringNode.Value);
     }
 
-    internal static IPlistConverter BuildEnumConverter(Type type)
-        => (IPlistConverter)Activator.CreateInstance(typeof(EnumConverter<>).MakeGenericType(type));
+    private static object DeserializeObject(Type type, PNode node)
+    {
+        if (node is not DictionaryNode dictionaryNode)
+            return default;
+
+        var resolvedType = type.GetResolver()?.ResolveType(dictionaryNode) ?? type;
+
+        var instance = Activator.CreateInstance(resolvedType);
+        var properties = resolvedType.GetProperties();
+
+        foreach (var kvp in dictionaryNode)
+        {
+            var key = kvp.Key;
+            var value = kvp.Value;
+
+            var property = properties.FirstOrDefault(x => x.GetName() == key);
+            if (property == null)
+                continue;
+
+            var propertyType = property.PropertyType;
+            var propertyValue = Deserialize(propertyType, value);
+
+            property.SetValue(instance, propertyValue);
+        }
+
+        return instance;
+    }
+
+    // private static object DeserializePrimitive(Type type, PNode node)
+    //     => node switch
+    //     {
+
+    //         _ => default
+    //     };
+
+    private static object ConvertToType(object value, Type type)
+        => value != null
+            ? Convert.ChangeType(value, Nullable.GetUnderlyingType(type) ?? type)
+            : null;
 }

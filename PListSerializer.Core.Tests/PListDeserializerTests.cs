@@ -9,14 +9,6 @@ namespace PListSerializer.Core.Tests;
 [TestFixture()]
 public class PListDeserializerTests
 {
-    private Deserializer _deserializer;
-
-    [OneTimeSetUp]
-    public void SetUp()
-    {
-        _deserializer = new Deserializer();
-    }
-
     [TestCase]
     public void Deserialize_BigObject_Tests()
     {
@@ -41,7 +33,7 @@ public class PListDeserializerTests
         node.Add("DictionarySameType2", dictionaryNode);
         node.Add("DictionarySameType3", dictionaryNode);
 
-        var res = _deserializer.Deserialize<BigObject>(node);
+        var res = Deserializer.Deserialize<BigObject>(node);
         Assert.Multiple(() =>
         {
             Assert.That(res.Array0, Is.Not.Null);
@@ -83,7 +75,7 @@ public class PListDeserializerTests
         node.Add("DictionarySameType2", dictionaryNode);
         node.Add("DictionarySameType3", dictionaryNode);
 
-        var res = _deserializer.Deserialize<ClassWithSameTypes>(node);
+        var res = Deserializer.Deserialize<ClassWithSameTypes>(node);
         Assert.Multiple(() =>
         {
             Assert.That(res.ArraySameType, Is.Not.Null);
@@ -108,9 +100,11 @@ public class PListDeserializerTests
         var byteArray = File.ReadAllBytes(Path.Combine(TestContext.CurrentContext.TestDirectory, "Resources", "PList2.plist"));
         var stream = new MemoryStream(byteArray);
         var node = PList.Load(stream);
-        var r = _deserializer.Deserialize<RootPList>(node);
+        var r = Deserializer.Deserialize<RootPList>(node);
 
         Assert.That(r, Is.Not.Null);
+
+        Console.WriteLine(PList.ToString(node));
 
         Assert.Multiple(() =>
         {
@@ -131,7 +125,7 @@ public class PListDeserializerTests
         var byteArray = File.ReadAllBytes(Path.Combine(TestContext.CurrentContext.TestDirectory, "Resources", "PList3.plist"));
         var stream = new MemoryStream(byteArray);
         var node = PList.Load(stream);
-        var r = _deserializer.Deserialize<EffectsPlist>(node);
+        var r = Deserializer.Deserialize<EffectsPlist>(node);
 
         Assert.That(r.AdjustmentLayers, Is.Not.Null);
         var adjustmentLayer = r.AdjustmentLayers["DevelopAdjustmentLayer"];
@@ -225,7 +219,7 @@ public class PListDeserializerTests
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(plist));
         var rootNode = PList.Load(stream);
 
-        var root = _deserializer.Deserialize<ResolverTestClass>(rootNode);
+        var root = Deserializer.Deserialize<ResolverTestClass>(rootNode);
 
         Assert.That(root, Is.Not.Null);
 

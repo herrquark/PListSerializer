@@ -12,7 +12,7 @@ internal class ResolverTestClass
     public ResolverTestBaseClass Cls { get; set; }
 }
 
-internal class ResolverTestBaseClassResolver : IPlistTypeResolver<ResolverTestBaseClass>
+internal class ResolverTestBaseClassResolver : IPlistTypeResolver
 {
     public Type ResolveType(PNode node)
     {

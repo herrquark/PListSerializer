@@ -1,4 +1,5 @@
-﻿using PListNet.Nodes;
+﻿using PListNet;
+using PListNet.Nodes;
 using PListSerializer.Core.Tests.TestModels;
 
 namespace PListSerializer.Core.Tests;
@@ -33,14 +34,17 @@ public class PListCollectionsSerializeTests
                 ]
             },
             new() {Id = "4"},
-            new() {Id = "5"},
-            new() {Id = "hss", HashSetOfStrings = ["a", "b", "c"] },
-            new() {Id = "hsc", HashSetOfSelf = [ new() {Id = "hsc1"}, new() {Id = "hsc2"} ] }
+            new() {Id = "5", HashSetOfStrings = ["a", "b", "c"] },
+            new() {Id = "6", HashSetOfSelf = [ new() {Id = "hsc1"}, new() {Id = "hsc2"} ] },
+            new() {Id = "7", ByteArray = [1, 2, 3, 4, 5] }
         };
 
         var res = Serializer.Serialize(arr) as ArrayNode;
         Assert.That(res, Is.Not.Null);
         Assert.That(res, Has.Count.EqualTo(8));
+
+        Console.WriteLine(PListNet.PList.ToString(res));
+        Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(res.Select(x => x as PNode), new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
 
         Assert.Multiple(() => {
             Assert.That(res[0], Is.TypeOf<DictionaryNode>());
@@ -101,12 +105,17 @@ public class PListCollectionsSerializeTests
         });
 
         Assert.Multiple(() => {
-            Assert.That((res[6] as DictionaryNode)[nameof(ClassWithSameTypes.HashSetOfStrings)], Is.TypeOf<ArrayNode>());
-            Assert.That((res[7] as DictionaryNode)[nameof(ClassWithSameTypes.HashSetOfSelf)], Is.TypeOf<ArrayNode>());
+            Assert.That((res[5] as DictionaryNode)[nameof(ClassWithSameTypes.HashSetOfStrings)], Is.TypeOf<ArrayNode>());
+            Assert.That((res[6] as DictionaryNode)[nameof(ClassWithSameTypes.HashSetOfSelf)], Is.TypeOf<ArrayNode>());
         });
 
-        var hss = Deserializer.Deserialize<ClassWithSameTypes>(res[6]);
-        Assert.That(hss.HashSetOfStrings, Is.EquivalentTo(arr[6].HashSetOfStrings));
+        var hss = Deserializer.Deserialize<ClassWithSameTypes>(res[5]);
+        Assert.That(hss.HashSetOfStrings, Is.EquivalentTo(arr[5].HashSetOfStrings));
+
+        var ba = Deserializer.Deserialize<ClassWithSameTypes>(res[7]);
+        Console.WriteLine($"BA: {ba.ByteArray}");
+        Console.WriteLine($"AR: {arr[7].ByteArray}");
+        Assert.That(ba.ByteArray, Is.EquivalentTo(arr[7].ByteArray));
 
         // var hsc = Deserializer.Deserialize<ClassWithSameTypes>(res[7]);
         // Assert.That(hsc.HashSetOfSelf.Select(x => x.Id), Is.EquivalentTo(arr[7].HashSetOfSelf.Select(x => x.Id)));

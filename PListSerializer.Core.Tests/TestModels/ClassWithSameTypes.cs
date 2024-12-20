@@ -63,6 +63,8 @@ public class ClassWithSameTypes : BaseClassWithSameTypes
     public TestEnum?[] NullableEnumArray { get; set; }
     public List<TestEnum?> NullableEnumList { get; set; }
     public Dictionary<string, TestEnum?> NullableEnumDictionary { get; set; }
+
+    public byte[] ByteArray { get; set; }
 }
 
 public enum TestEnum

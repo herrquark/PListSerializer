@@ -15,7 +15,10 @@ public class Deserializer
         => type switch
         {
             _ when type.IsDictionary() => DeserializeDictionary(type, node),
+
+            //_ when node is DataNode dataNode => dataNode.Value, // just return bytes
             _ when type.IsArray => DeserializeArray(type, node),
+
             _ when type.IsList() => DeserializeList(type, node),
             _ when type.IsHashSet() => DeserializeHashSet(type, node),
             _ when type.IsEnum => DeserializeEnum(type, node),
@@ -24,8 +27,8 @@ public class Deserializer
             _ when node is RealNode realNode => ConvertToType(realNode.Value, type),
             _ when node is StringNode stringNode => ConvertToType(stringNode.Value, type),
             _ when node is BooleanNode booleanNode => ConvertToType(booleanNode.Value, type),
-            _ when node is DataNode dataNode => ConvertToType(dataNode.Value, type),
             _ when node is DateNode dateNode => ConvertToType(dateNode.Value, type),
+
 
             _ => DeserializeObject(type, node)
         };
@@ -51,6 +54,10 @@ public class Deserializer
 
     private static object DeserializeArray(Type type, PNode node)
     {
+        // byte[] is an array
+        if (node is DataNode dataNode)
+            return dataNode.Value;
+
         if (node is not ArrayNode arrayNode)
             return default;
 

@@ -135,5 +135,6 @@ public class Serializer
         };
 
     private static object GetDefaultValueForType(Type type)
-        => type.IsValueType ? Activator.CreateInstance(type) : null;
+        // => type.IsValueType ? Activator.CreateInstance(type) : null;
+        => null;
 }

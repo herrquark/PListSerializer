@@ -146,7 +146,38 @@ public class Deserializer
     //     };
 
     private static object ConvertToType(object value, Type type)
-        => value != null
-            ? Convert.ChangeType(value, Nullable.GetUnderlyingType(type) ?? type)
-            : null;
+    {
+        type = Nullable.GetUnderlyingType(type) ?? type;
+
+        return type switch
+        {
+            // nulls are always nulls
+            _ when value == null => null,
+
+            // handle TimeSpan
+            _ when type == typeof(TimeSpan) => value != null
+                ? TimeSpan.TryParse(value.ToString(), out var result)
+                    ? result
+                    : null
+                : null,
+
+            // handle Uri
+            _ when type == typeof(Uri) => value != null
+                ? new Uri(value.ToString())
+                : null,
+
+            // handle Guid
+            _ when type == typeof(Guid) => value != null
+                ? Guid.TryParse(value.ToString(), out var result)
+                    ? result
+                    : null
+                : null,
+
+            // handle other types via TypeConverter
+            _ when TypeDescriptor.GetConverter(type).CanConvertFrom(value.GetType()) =>
+                TypeDescriptor.GetConverter(type).ConvertFrom(value),
+
+            _ => Convert.ChangeType(value, type)
+        };
+    }
 }

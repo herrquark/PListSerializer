@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="PListSerializer.Core.Tests/PListSerializer.Core.Tests.csproj" />
+  <Project Path="PListSerializer.Core/PListSerializer.Core.csproj" />
+</Solution>

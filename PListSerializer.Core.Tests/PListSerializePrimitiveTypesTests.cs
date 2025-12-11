@@ -3,97 +3,95 @@ using PListNet.Nodes;
 
 namespace PListSerializer.Core.Tests;
 
-[TestFixture]
 public class PListSerializePrimitiveTypesTests
 {
-    [OneTimeSetUp]
-    public void SetUp()
-    {
-    }
-
-    [TestCase(42)]
-    [TestCase(-13423)]
-    [TestCase(0)]
+    [Theory]
+    [InlineData(42)]
+    [InlineData(-13423)]
+    [InlineData(0)]
     public void Serialize_Int_Test(int source)
     {
         var node = Serializer.Serialize(source);
-        Assert.That(node, Is.Not.Null);
+        Assert.NotNull(node);
 
         var intNode = node as IntegerNode;
-        Assert.That(intNode, Is.Not.Null);
+        Assert.NotNull(intNode);
 
-        Assert.That(intNode.Value, Is.EqualTo(source));
+        Assert.Equal(source, intNode.Value);
     }
 
-    [TestCase(42)]
-    [TestCase(-13423)]
-    [TestCase(0)]
+    [Theory]
+    [InlineData(42)]
+    [InlineData(-13423)]
+    [InlineData(0)]
     public void Serialize_Long_Test(long source)
     {
         var node = Serializer.Serialize(source);
-        Assert.That(node, Is.Not.Null);
+        Assert.NotNull(node);
 
         var intNode = node as IntegerNode;
-        Assert.That(intNode, Is.Not.Null);
+        Assert.NotNull(intNode);
 
-        Assert.That(intNode.Value, Is.EqualTo(source));
+        Assert.Equal(source, intNode.Value);
     }
 
-    [TestCase(true)]
-    [TestCase(false)]
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void Serialize_Bool_Test(bool source)
     {
         var node = Serializer.Serialize(source);
-        Assert.That(node, Is.Not.Null);
+        Assert.NotNull(node);
 
         var boolNode = node as BooleanNode;
-        Assert.That(boolNode, Is.Not.Null);
+        Assert.NotNull(boolNode);
 
-        Assert.That(boolNode.Value, Is.EqualTo(source));
+        Assert.Equal(source, boolNode.Value);
     }
 
-    [TestCase("String_42")]
-    [TestCase("String_42grtryrthytrytryrt")]
+    [Theory]
+    [InlineData("String_42")]
+    [InlineData("String_42grtryrthytrytryrt")]
     public void Serialize_String_Test(string source)
     {
         var node = Serializer.Serialize(source);
-        Assert.That(node, Is.Not.Null);
+        Assert.NotNull(node);
 
         var stringNode = node as StringNode;
-        Assert.That(stringNode, Is.Not.Null);
+        Assert.NotNull(stringNode);
 
-        Assert.That(stringNode.Value, Is.EqualTo(source));
+        Assert.Equal(source, stringNode.Value);
     }
 
-    [TestCase]
+    [Fact]
     public void Serialize_Date_Test()
     {
         DateTime source = DateTime.MaxValue;
 
         var node = Serializer.Serialize(source);
-        Assert.That(node, Is.Not.Null);
+        Assert.NotNull(node);
 
         var dateNode = node as DateNode;
-        Assert.That(dateNode, Is.Not.Null);
+        Assert.NotNull(dateNode);
 
-        Assert.That(dateNode.Value, Is.EqualTo(source));
+        Assert.Equal(source, dateNode.Value);
     }
 
-    [TestCase]
+    [Fact]
     public void Serialize_Enum_Test()
     {
         var source = TestEnum.Value2;
 
         var node = Serializer.Serialize(source);
-        Assert.That(node, Is.Not.Null);
+        Assert.NotNull(node);
 
         var enumNode = node as StringNode;
-        Assert.That(enumNode, Is.Not.Null);
+        Assert.NotNull(enumNode);
 
         Assert.Multiple(() =>
         {
-            Assert.That(enumNode.Value, Is.EqualTo(source.ToString()));
-            Assert.That(PList.ToString(enumNode, writePlistMeta: false), Is.EqualTo("<string>Value2</string>\n"));
+            Assert.Equal(source.ToString(), enumNode.Value);
+            Assert.Equal("<string>Value2</string>\n", PList.ToString(enumNode, writePlistMeta: false));
         });
 
     }

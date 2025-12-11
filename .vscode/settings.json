@@ -1,0 +1,4 @@
+{
+    "explorer.excludeGitIgnore": false,
+    "dotnet.testWindow.useTestingPlatformProtocol": true
+}

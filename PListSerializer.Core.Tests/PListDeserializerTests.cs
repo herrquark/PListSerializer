@@ -6,10 +6,9 @@ using PListSerializer.Core.Tests.TestModels;
 
 namespace PListSerializer.Core.Tests;
 
-[TestFixture()]
 public class PListDeserializerTests
 {
-    [TestCase]
+    [Fact]
     public void Deserialize_BigObject_Tests()
     {
         var node = new DictionaryNode();
@@ -36,24 +35,24 @@ public class PListDeserializerTests
         var res = Deserializer.Deserialize<BigObject>(node);
         Assert.Multiple(() =>
         {
-            Assert.That(res.Array0, Is.Not.Null);
-            Assert.That(res.Array1, Is.Not.Null);
-            Assert.That(res.Array2, Is.Not.Null);
+            Assert.NotNull(res.Array0);
+            Assert.NotNull(res.Array1);
+            Assert.NotNull(res.Array2);
 
-            Assert.That(res.Dictionary0, Is.Not.Null);
-            Assert.That(res.Dictionary1, Is.Not.Null);
-            Assert.That(res.Dictionary2, Is.Not.Null);
-            Assert.That(res.Dictionary3, Is.Not.Null);
+            Assert.NotNull(res.Dictionary0);
+            Assert.NotNull(res.Dictionary1);
+            Assert.NotNull(res.Dictionary2);
+            Assert.NotNull(res.Dictionary3);
 
-            Assert.That(res.Ints1, Is.Not.Null);
-            Assert.That(res.List0, Is.Not.Null);
-            Assert.That(res.List1, Is.Not.Null);
-            Assert.That(res.List2, Is.Not.Null);
+            Assert.NotNull(res.Ints1);
+            Assert.NotNull(res.List0);
+            Assert.NotNull(res.List1);
+            Assert.NotNull(res.List2);
         });
 
     }
 
-    [TestCase]
+    [Fact]
     public void Deserialize_Class_With_Properties_Same_Test()
     {
         var node = new DictionaryNode();
@@ -78,72 +77,70 @@ public class PListDeserializerTests
         var res = Deserializer.Deserialize<ClassWithSameTypes>(node);
         Assert.Multiple(() =>
         {
-            Assert.That(res.ArraySameType, Is.Not.Null);
-            Assert.That(res.ArraySameType2, Is.Not.Null);
+            Assert.NotNull(res.ArraySameType);
+            Assert.NotNull(res.ArraySameType2);
 
-            Assert.That(res.ClassSameType, Is.Not.Null);
-            Assert.That(res.ClassSameType2, Is.Not.Null);
-            Assert.That(res.ClassSameType3, Is.Not.Null);
+            Assert.NotNull(res.ClassSameType);
+            Assert.NotNull(res.ClassSameType2);
+            Assert.NotNull(res.ClassSameType3);
 
-            Assert.That(res.DictionarySameType, Is.Not.Null);
-            Assert.That(res.DictionarySameType2, Is.Not.Null);
+            Assert.NotNull(res.DictionarySameType);
+            Assert.NotNull(res.DictionarySameType2);
 
-            Assert.That(res.List1, Is.Not.Null);
-            Assert.That(res.List2, Is.Not.Null);
-            Assert.That(res.List3, Is.Not.Null);
+            Assert.NotNull(res.List1);
+            Assert.NotNull(res.List2);
+            Assert.NotNull(res.List3);
         });
     }
 
-    [TestCase]
+    [Fact]
     public void Deserialize_Effect_Test()
     {
-        var byteArray = File.ReadAllBytes(Path.Combine(TestContext.CurrentContext.TestDirectory, "Resources", "PList2.plist"));
+        var byteArray = File.ReadAllBytes(Path.Combine("Resources", "PList2.plist"));
         var stream = new MemoryStream(byteArray);
         var node = PList.Load(stream);
         var r = Deserializer.Deserialize<RootPList>(node);
 
-        Assert.That(r, Is.Not.Null);
-
-        Console.WriteLine(PList.ToString(node));
+        Assert.NotNull(r);
 
         Assert.Multiple(() =>
         {
-            Assert.That(r.GroupIdentifier, Is.EqualTo("Custom"));
-            Assert.That(r.PresetIdentifierKey, Is.EqualTo("Clarity Booster - 2018.lmp"));
-            Assert.That(r.Hidden, Is.EqualTo(true));
-            Assert.That(r.Id, Is.EqualTo("259F230F-A18A-489C-87FE-024B503E1F5C"));
-            Assert.That(r.AdjustmentLayers, Is.Not.Null);
+            Assert.Equal("Custom", r.GroupIdentifier);
+            Assert.Equal("Clarity Booster - 2018.lmp", r.PresetIdentifierKey);
+            Assert.True(r.Hidden);
+            Assert.Equal("259F230F-A18A-489C-87FE-024B503E1F5C", r.Id);
+            Assert.NotNull(r.AdjustmentLayers);
 
         });
 
-        Assert.That(r.AdjustmentLayers[0], Is.Not.Null);
+        Assert.NotNull(r.AdjustmentLayers[0]);
     }
 
-    [TestCase]
+    [Fact]
     public void Serialize_EffectsInfo_Test()
     {
-        var byteArray = File.ReadAllBytes(Path.Combine(TestContext.CurrentContext.TestDirectory, "Resources", "PList3.plist"));
+        var byteArray = File.ReadAllBytes(Path.Combine("Resources", "PList3.plist"));
         var stream = new MemoryStream(byteArray);
         var node = PList.Load(stream);
         var r = Deserializer.Deserialize<EffectsPlist>(node);
 
-        Assert.That(r.AdjustmentLayers, Is.Not.Null);
+        Assert.NotNull(r.AdjustmentLayers);
         var adjustmentLayer = r.AdjustmentLayers["DevelopAdjustmentLayer"];
-        Assert.That(adjustmentLayer, Is.Not.Null);
+        Assert.NotNull(adjustmentLayer);
 
         Assert.Multiple(() =>
         {
-            Assert.That(adjustmentLayer.InfoImageName, Is.EqualTo("raw_dev2"));
-            Assert.That(adjustmentLayer.Identifier, Is.EqualTo("1"));
-            Assert.That(adjustmentLayer.Sublayers, Is.Not.Null);
+            Assert.Equal("raw_dev2", adjustmentLayer.InfoImageName);
+            Assert.Equal("1", adjustmentLayer.Identifier);
+            Assert.NotNull(adjustmentLayer.Sublayers);
 
         });
 
-        Assert.That(adjustmentLayer.Sublayers, Has.Length.EqualTo(4));
-        Assert.That(adjustmentLayer.Sublayers[0].EffectsIMG, Is.Not.Null);
+        Assert.Equal(4, adjustmentLayer.Sublayers.Length);
+        Assert.NotNull(adjustmentLayer.Sublayers[0].EffectsIMG);
     }
 
-    [TestCase]
+    [Fact]
     public void Deserialize_WithResolver_Test()
     {
         var plist = """
@@ -221,28 +218,28 @@ public class PListDeserializerTests
 
         var root = Deserializer.Deserialize<ResolverTestClass>(rootNode);
 
-        Assert.That(root, Is.Not.Null);
+        Assert.NotNull(root);
 
         Assert.Multiple(() =>
         {
-            Assert.That(root.Arr, Has.Length.EqualTo(4));
-            Assert.That(root.Arr[0], Is.InstanceOf<ResolverTestOne>());
-            Assert.That(root.Arr[1], Is.InstanceOf<ResolverTestTwo>());
-            Assert.That(root.Arr[2], Is.InstanceOf<ResolverTestThree>());
-            Assert.That(root.Arr[3], Is.InstanceOf<ResolverTestBaseClass>());
+            Assert.Equal(4, root.Arr.Length);
+            Assert.IsType<ResolverTestOne>(root.Arr[0]);
+            Assert.IsType<ResolverTestTwo>(root.Arr[1]);
+            Assert.IsType<ResolverTestThree>(root.Arr[2]);
+            Assert.IsType<ResolverTestBaseClass>(root.Arr[3]);
         });
 
 
         Assert.Multiple(() =>
         {
-            Assert.That(root.Lst, Has.Count.EqualTo(4));
-            Assert.That(root.Lst[0], Is.InstanceOf<ResolverTestOne>());
-            Assert.That(root.Lst[1], Is.InstanceOf<ResolverTestTwo>());
-            Assert.That(root.Lst[2], Is.InstanceOf<ResolverTestThree>());
-            Assert.That(root.Lst[3], Is.InstanceOf<ResolverTestBaseClass>());
+            Assert.Equal(4, root.Lst.Count);
+            Assert.IsType<ResolverTestOne>(root.Lst[0]);
+            Assert.IsType<ResolverTestTwo>(root.Lst[1]);
+            Assert.IsType<ResolverTestThree>(root.Lst[2]);
+            Assert.IsType<ResolverTestBaseClass>(root.Lst[3]);
         });
 
-        Assert.That(root.Cls, Is.InstanceOf<ResolverTestThree>());
+        Assert.IsType<ResolverTestThree>(root.Cls);
     }
 }
 

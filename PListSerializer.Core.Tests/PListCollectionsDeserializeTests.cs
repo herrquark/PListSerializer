@@ -4,108 +4,107 @@ using PListSerializer.Core.Tests.TestModels;
 
 namespace PListSerializer.Core.Tests;
 
-[TestFixture]
 public class PListCollectionsDeserializeTests
 {
-    [TestCase]
+    [Fact]
     public void Recursion_Deep_SubclassArray_Test()
     {
-        var byteArray = File.ReadAllBytes(Path.Combine(TestContext.CurrentContext.TestDirectory, "Resources", "PList4.plist"));
+        var byteArray = File.ReadAllBytes(Path.Combine("Resources", "PList4.plist"));
         var stream = new MemoryStream(byteArray);
         var node = PList.Load(stream);
         var res = Deserializer.Deserialize<ClassWithSameTypes>(node);
         Assert.Multiple(() =>
         {
-            Assert.That(res.ArraySameType, Is.Not.Null);
-            Assert.That(res.Id, Is.Null);
+            Assert.NotNull(res.ArraySameType);
+            Assert.Null(res.Id);
         });
 
         Assert.Multiple(() =>
         {
-            Assert.That(res.ArraySameType[0].Id, Is.EqualTo("0"));
-            Assert.That(res.ArraySameType[1].Id, Is.EqualTo("1"));
-            Assert.That(res.ArraySameType[2].Id, Is.EqualTo("2"));
-            Assert.That(res.ArraySameType[3].Id, Is.EqualTo("3"));
-            Assert.That(res.ArraySameType[4].Id, Is.EqualTo("4"));
-            Assert.That(res.ArraySameType[5].Id, Is.EqualTo("5"));
+            Assert.Equal("0", res.ArraySameType[0].Id);
+            Assert.Equal("1", res.ArraySameType[1].Id);
+            Assert.Equal("2", res.ArraySameType[2].Id);
+            Assert.Equal("3", res.ArraySameType[3].Id);
+            Assert.Equal("4", res.ArraySameType[4].Id);
+            Assert.Equal("5", res.ArraySameType[5].Id);
 
-            Assert.That(res.ArraySameType[0].ArraySameType[0].Id, Is.EqualTo("00"));
-            Assert.That(res.ArraySameType[0].ArraySameType[1].Id, Is.EqualTo("01"));
-            Assert.That(res.ArraySameType[0].ArraySameType[0].ArraySameType[0].Id, Is.EqualTo("000"));
-            Assert.That(res.ArraySameType[0].ArraySameType[0].ArraySameType[1].Id, Is.EqualTo("001"));
+            Assert.Equal("00", res.ArraySameType[0].ArraySameType[0].Id);
+            Assert.Equal("01", res.ArraySameType[0].ArraySameType[1].Id);
+            Assert.Equal("000", res.ArraySameType[0].ArraySameType[0].ArraySameType[0].Id);
+            Assert.Equal("001", res.ArraySameType[0].ArraySameType[0].ArraySameType[1].Id);
         });
 
     }
 
-    [Test]
+    [Fact]
     public void Recursion_Deep_SubclassDictionaryAndArray_Test()
     {
-        var byteArray = File.ReadAllBytes(Path.Combine(TestContext.CurrentContext.TestDirectory, "Resources", "PList5.plist"));
+        var byteArray = File.ReadAllBytes(Path.Combine("Resources", "PList5.plist"));
         var stream = new MemoryStream(byteArray);
         var node = PList.Load(stream);
         var root = Deserializer.Deserialize<ClassWithDictionaryAndArraySameType>(node);
-        Assert.That(root.DictionaryArrays, Is.Not.Null);
+        Assert.NotNull(root.DictionaryArrays);
         var array1 = root.DictionaryArrays["Arrays1"];
 
-        Assert.That(array1, Is.Not.Null);
+        Assert.NotNull(array1);
         Assert.Multiple(() =>
         {
-            Assert.That(array1.Id, Is.Not.Null);
-            Assert.That(array1.ArraySameType, Is.Not.Null);
+            Assert.NotNull(array1.Id);
+            Assert.NotNull(array1.ArraySameType);
         });
 
         Assert.Multiple(() =>
         {
-            Assert.That(array1.ArraySameType[0].Id, Is.EqualTo("0"));
-            Assert.That(array1.ArraySameType[1].Id, Is.EqualTo("1"));
-            Assert.That(array1.ArraySameType[2].Id, Is.EqualTo("2"));
-            Assert.That(array1.ArraySameType[3].Id, Is.EqualTo("3"));
-            Assert.That(array1.ArraySameType[4].Id, Is.EqualTo("4"));
-            Assert.That(array1.ArraySameType[5].Id, Is.EqualTo("5"));
+            Assert.Equal("0", array1.ArraySameType[0].Id);
+            Assert.Equal("1", array1.ArraySameType[1].Id);
+            Assert.Equal("2", array1.ArraySameType[2].Id);
+            Assert.Equal("3", array1.ArraySameType[3].Id);
+            Assert.Equal("4", array1.ArraySameType[4].Id);
+            Assert.Equal("5", array1.ArraySameType[5].Id);
 
-            Assert.That(array1.ArraySameType[0].ArraySameType[0].Id, Is.EqualTo("00"));
-            Assert.That(array1.ArraySameType[0].ArraySameType[1].Id, Is.EqualTo("01"));
-            Assert.That(array1.ArraySameType[0].ArraySameType[0].ArraySameType[0].Id, Is.EqualTo("000"));
-            Assert.That(array1.ArraySameType[0].ArraySameType[0].ArraySameType[1].Id, Is.EqualTo("001"));
+            Assert.Equal("00", array1.ArraySameType[0].ArraySameType[0].Id);
+            Assert.Equal("01", array1.ArraySameType[0].ArraySameType[1].Id);
+            Assert.Equal("000", array1.ArraySameType[0].ArraySameType[0].ArraySameType[0].Id);
+            Assert.Equal("001", array1.ArraySameType[0].ArraySameType[0].ArraySameType[1].Id);
         });
 
 
         var array2 = root.DictionaryArrays["Arrays2"];
 
-        Assert.That(array2, Is.Not.Null);
+        Assert.NotNull(array2);
         Assert.Multiple(() =>
         {
-            Assert.That(array2.Id, Is.Not.Null);
-            Assert.That(array2.ArraySameType, Is.Not.Null);
+            Assert.NotNull(array2.Id);
+            Assert.NotNull(array2.ArraySameType);
         });
 
         Assert.Multiple(() =>
         {
-            Assert.That(array2.ArraySameType[0].Id, Is.EqualTo("0"));
-            Assert.That(array2.ArraySameType[1].Id, Is.EqualTo("1"));
+            Assert.Equal("0", array2.ArraySameType[0].Id);
+            Assert.Equal("1", array2.ArraySameType[1].Id);
 
-            Assert.That(array2.ArraySameType[1].ArraySameType[0].Id, Is.EqualTo("10"));
+            Assert.Equal("10", array2.ArraySameType[1].ArraySameType[0].Id);
         });
     }
 
-    [TestCase]
+    [Fact]
     public void Recursion_Deep_SubclassArray_WithEmpty_Test()
     {
-        var byteArray = File.ReadAllBytes(Path.Combine(TestContext.CurrentContext.TestDirectory, "Resources", "PList6.plist"));
+        var byteArray = File.ReadAllBytes(Path.Combine("Resources", "PList6.plist"));
         var stream = new MemoryStream(byteArray);
         var node = PList.Load(stream);
         var res = Deserializer.Deserialize<ClassWithSameTypes>(node);
-        Assert.That(res.ArraySameType, Is.Not.Null);
+        Assert.NotNull(res.ArraySameType);
         Assert.Multiple(() =>
         {
-            Assert.That(res.ArraySameType[0].Id, Is.EqualTo("0"));
-            Assert.That(res.ArraySameType[1].Id, Is.EqualTo("1"));
-            Assert.That(res.ArraySameType[1].ArraySameType[0].Id, Is.EqualTo("10"));
-            Assert.That(res.ArraySameType[1].ArraySameType[1].Id, Is.EqualTo("11"));
+            Assert.Equal("0", res.ArraySameType[0].Id);
+            Assert.Equal("1", res.ArraySameType[1].Id);
+            Assert.Equal("10", res.ArraySameType[1].ArraySameType[0].Id);
+            Assert.Equal("11", res.ArraySameType[1].ArraySameType[1].Id);
         });
     }
 
-    [TestCase]
+    [Fact]
     public void Nullable_Test()
     {
         // test nullable properties
@@ -153,69 +152,68 @@ public class PListCollectionsDeserializeTests
         };
 
         var rootNode = Serializer.Serialize(obj);
-        Console.WriteLine(PList.ToString(rootNode));
 
         var reObj = Deserializer.Deserialize<ClassWithSameTypes>(rootNode);
 
         Assert.Multiple(() =>
         {
-            Assert.That(reObj.Id, Is.EqualTo("1"));
-            Assert.That(reObj.NullableInt, Is.EqualTo(1));
-            Assert.That(reObj.ArraySameType, Is.Not.Null);
-            Assert.That(reObj.ArraySameType[0].Id, Is.EqualTo("10"));
-            Assert.That(reObj.ArraySameType[0].NullableInt, Is.EqualTo(10));
-            Assert.That(reObj.ArraySameType[1].Id, Is.EqualTo("11"));
-            Assert.That(reObj.ArraySameType[1].NullableInt, Is.Null);
+            Assert.Equal("1", reObj.Id);
+            Assert.Equal(1, reObj.NullableInt);
+            Assert.NotNull(reObj.ArraySameType);
+            Assert.Equal("10", reObj.ArraySameType[0].Id);
+            Assert.Equal(10, reObj.ArraySameType[0].NullableInt);
+            Assert.Equal("11", reObj.ArraySameType[1].Id);
+            Assert.Null(reObj.ArraySameType[1].NullableInt);
 
-            Assert.That(reObj.NullableBool, Is.True);
-            Assert.That(reObj.NullableBoolArray, Is.EqualTo(new bool?[] { true, false }));
-            Assert.That(reObj.NullableBoolDictionary["true"], Is.True);
-            Assert.That(reObj.NullableBoolDictionary["false"], Is.False);
-            Assert.That(reObj.NullableBoolDictionary, Does.Not.ContainKey("null"));
+            Assert.True(reObj.NullableBool);
+            Assert.Equal([true, false], reObj.NullableBoolArray);
+            Assert.True(reObj.NullableBoolDictionary["true"]);
+            Assert.False(reObj.NullableBoolDictionary["false"]);
+            Assert.DoesNotContain("null", reObj.NullableBoolDictionary.Keys);
 
-            Assert.That(reObj.NullableDateTime, Is.Not.Null);
-            Assert.That(reObj.NullableDateTimeArray.Length, Is.EqualTo(2));
-            Assert.That(reObj.NullableDateTimeDictionary["now"], Is.Not.Null);
-            Assert.That(reObj.NullableDateTimeDictionary["tomorrow"], Is.Not.Null);
-            Assert.That(reObj.NullableDateTimeDictionary, Does.Not.ContainKey("null"));
+            Assert.NotNull(reObj.NullableDateTime);
+            Assert.Equal(2, reObj.NullableDateTimeArray.Length);
+            Assert.NotNull(reObj.NullableDateTimeDictionary["now"]);
+            Assert.NotNull(reObj.NullableDateTimeDictionary["tomorrow"]);
+            Assert.DoesNotContain("null", reObj.NullableDateTimeDictionary.Keys);
 
-            Assert.That(reObj.NullableDecimal, Is.EqualTo(1.1m));
-            Assert.That(reObj.NullableDecimalArray, Is.EqualTo(new decimal?[] { 1.1m, 2.2m }));
-            Assert.That(reObj.NullableDecimalDictionary["1.1"], Is.EqualTo(1.1m));
-            Assert.That(reObj.NullableDecimalDictionary["2.2"], Is.EqualTo(2.2m));
-            Assert.That(reObj.NullableDecimalDictionary, Does.Not.ContainKey("null"));
+            Assert.Equal(1.1m, reObj.NullableDecimal);
+            Assert.Equal([1.1m, 2.2m], reObj.NullableDecimalArray);
+            Assert.Equal(1.1m, reObj.NullableDecimalDictionary["1.1"]);
+            Assert.Equal(2.2m, reObj.NullableDecimalDictionary["2.2"]);
+            Assert.DoesNotContain("null", reObj.NullableDecimalDictionary.Keys);
 
-            Assert.That(reObj.NullableDouble, Is.EqualTo(1.1));
-            Assert.That(reObj.NullableDoubleArray, Is.EqualTo(new double?[] { 1.1, 2.2 }));
-            Assert.That(reObj.NullableDoubleDictionary["1.1"], Is.EqualTo(1.1));
-            Assert.That(reObj.NullableDoubleDictionary["2.2"], Is.EqualTo(2.2));
-            Assert.That(reObj.NullableDoubleDictionary, Does.Not.ContainKey("null"));
+            Assert.Equal(1.1, reObj.NullableDouble);
+            Assert.Equal([1.1, 2.2], reObj.NullableDoubleArray);
+            Assert.Equal(1.1, reObj.NullableDoubleDictionary["1.1"]);
+            Assert.Equal(2.2, reObj.NullableDoubleDictionary["2.2"]);
+            Assert.DoesNotContain("null", reObj.NullableDoubleDictionary.Keys);
 
-            Assert.That(reObj.NullableFloat, Is.EqualTo(1.1f));
-            Assert.That(reObj.NullableFloatArray, Is.EqualTo(new float?[] { 1.1f, 2.2f }));
-            Assert.That(reObj.NullableFloatDictionary["1.1"], Is.EqualTo(1.1f));
-            Assert.That(reObj.NullableFloatDictionary["2.2"], Is.EqualTo(2.2f));
-            Assert.That(reObj.NullableFloatDictionary, Does.Not.ContainKey("null"));
+            Assert.Equal(1.1f, reObj.NullableFloat);
+            Assert.Equal([1.1f, 2.2f], reObj.NullableFloatArray);
+            Assert.Equal(1.1f, reObj.NullableFloatDictionary["1.1"]);
+            Assert.Equal(2.2f, reObj.NullableFloatDictionary["2.2"]);
+            Assert.DoesNotContain("null", reObj.NullableFloatDictionary.Keys);
 
-            Assert.That(reObj.NullableInt, Is.EqualTo(1));
-            Assert.That(reObj.NullableIntArray, Is.EqualTo(new int?[] { 1, 2 }));
-            Assert.That(reObj.NullableIntDictionary["1"], Is.EqualTo(1));
-            Assert.That(reObj.NullableIntDictionary["2"], Is.EqualTo(2));
-            Assert.That(reObj.NullableIntDictionary, Does.Not.ContainKey("null"));
+            Assert.Equal(1, reObj.NullableInt);
+            Assert.Equal([1, 2], reObj.NullableIntArray);
+            Assert.Equal(1, reObj.NullableIntDictionary["1"]);
+            Assert.Equal(2, reObj.NullableIntDictionary["2"]);
+            Assert.DoesNotContain("null", reObj.NullableIntDictionary.Keys);
 
-            Assert.That(reObj.NullableLong, Is.EqualTo(1));
-            Assert.That(reObj.NullableLongArray, Is.EqualTo(new long?[] { 1, 2 }));
-            Assert.That(reObj.NullableLongDictionary["1"], Is.EqualTo(1));
-            Assert.That(reObj.NullableLongDictionary["2"], Is.EqualTo(2));
-            Assert.That(reObj.NullableLongDictionary, Does.Not.ContainKey("null"));
+            Assert.Equal(1, reObj.NullableLong);
+            Assert.Equal([1, 2], reObj.NullableLongArray);
+            Assert.Equal(1, reObj.NullableLongDictionary["1"]);
+            Assert.Equal(2, reObj.NullableLongDictionary["2"]);
+            Assert.DoesNotContain("null", reObj.NullableLongDictionary.Keys);
 
-            Assert.That(reObj.NullableBoolList, Is.EqualTo(new List<bool?> { true, false }));
-            Assert.That(reObj.NullableDateTimeList.Count, Is.EqualTo(2));
-            Assert.That(reObj.NullableDecimalList, Is.EqualTo(new List<decimal?> { 1.1m, 2.2m }));
-            Assert.That(reObj.NullableDoubleList, Is.EqualTo(new List<double?> { 1.1, 2.2 }));
-            Assert.That(reObj.NullableFloatList, Is.EqualTo(new List<float?> { 1.1f, 2.2f }));
-            Assert.That(reObj.NullableIntList, Is.EqualTo(new List<int?> { 1, 2 }));
-            Assert.That(reObj.NullableLongList, Is.EqualTo(new List<long?> { 1, 2 }));
+            Assert.Equal([true, false], reObj.NullableBoolList);
+            Assert.Equal(2, reObj.NullableDateTimeList.Count);
+            Assert.Equal([1.1m, 2.2m], reObj.NullableDecimalList);
+            Assert.Equal([1.1, 2.2], reObj.NullableDoubleList);
+            Assert.Equal([1.1f, 2.2f], reObj.NullableFloatList);
+            Assert.Equal([1, 2], reObj.NullableIntList);
+            Assert.Equal([1, 2], reObj.NullableLongList);
         });
     }
 }

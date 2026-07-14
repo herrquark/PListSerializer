@@ -1,4 +1,5 @@
-﻿using PListSerializer.Core.Attributes;
+﻿using System.Collections.Concurrent;
+using PListSerializer.Core.Attributes;
 
 namespace PListSerializer.Core.Extensions;
 
@@ -26,7 +27,7 @@ internal static class TypeExtensions
     }
 
 
-    private static Dictionary<Type, IPlistTypeResolver> ResolverCache { get; set; } = [];
+    private static ConcurrentDictionary<Type, IPlistTypeResolver> ResolverCache { get; set; } = [];
 
     public static IPlistTypeResolver GetResolver(this Type type)
     {

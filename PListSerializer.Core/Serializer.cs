@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Reflection;
 using PListNet;
@@ -92,7 +93,7 @@ public class Serializer
         public object DefaultValue { get; set; }
     }
 
-    private static readonly Dictionary<Type, GetterMember[]> MembersCache = [];
+    private static readonly ConcurrentDictionary<Type, GetterMember[]> MembersCache = [];
 
     private static GetterMember[] GetMembers(Type type)
     {

@@ -60,4 +60,37 @@ public class PListDeserializePrimitiveTypesTests
         Assert.IsType<DateTime>(res);
         Assert.Equal(source, res);
     }
+
+    [Fact]
+    public void Deserialize_TimeSpan_Test()
+    {
+        TimeSpan source = TimeSpan.MaxValue;
+
+        var node = new StringNode(source.ToString());
+        var res = Deserializer.Deserialize<TimeSpan>(node);
+        Assert.IsType<TimeSpan>(res);
+        Assert.Equal(source, res);
+    }
+
+    [Fact]
+    public void Deserialize_Uri_Test()
+    {
+        Uri source = new("https://example.com");
+
+        var node = new StringNode(source.ToString());
+        var res = Deserializer.Deserialize<Uri>(node);
+        Assert.IsType<Uri>(res);
+        Assert.Equal(source, res);
+    }
+
+    [Fact]
+    public void Deserialize_Guid_Test()
+    {
+        Guid source = Guid.NewGuid();
+
+        var node = new StringNode(source.ToString());
+        var res = Deserializer.Deserialize<Guid>(node);
+        Assert.IsType<Guid>(res);
+        Assert.Equal(source, res);
+    }
 }

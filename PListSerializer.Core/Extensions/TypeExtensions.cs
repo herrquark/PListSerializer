@@ -37,7 +37,7 @@ internal static class TypeExtensions
             .FirstOrDefault();
 
         return attr is not null
-            ? ResolverCache.GetOrAdd(type, () => (IPlistTypeResolver)Activator.CreateInstance(attr.Resolver))
+            ? ResolverCache.GetOrAdd(type, _ => (IPlistTypeResolver)Activator.CreateInstance(attr.Resolver))
             : null;
     }
 }

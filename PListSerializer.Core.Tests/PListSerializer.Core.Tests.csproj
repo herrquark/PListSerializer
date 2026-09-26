@@ -27,8 +27,8 @@
     </ItemGroup>
     <ItemGroup>
         <None Update="Resources\PList1.plist" CopyToOutputDirectory="PreserveNewest" />
-        <None Update="Resources\Plist2.plist" CopyToOutputDirectory="PreserveNewest" />
-        <None Update="Resources\Plist3.plist" CopyToOutputDirectory="PreserveNewest" />
+        <None Update="Resources\PList2.plist" CopyToOutputDirectory="PreserveNewest" />
+        <None Update="Resources\PList3.plist" CopyToOutputDirectory="PreserveNewest" />
         <None Update="Resources\PList4.plist" CopyToOutputDirectory="PreserveNewest" />
         <None Update="Resources\PList5.plist" CopyToOutputDirectory="PreserveNewest" />
         <None Update="Resources\PList6.plist" CopyToOutputDirectory="PreserveNewest" />

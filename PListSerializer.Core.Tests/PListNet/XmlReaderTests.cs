@@ -1,97 +1,91 @@
-﻿using PListNet.Nodes;
+using PListNet.Nodes;
 
 namespace PListNet.Tests;
 
-[TestFixture]
 public class XmlReaderTests
 {
-    [Test]
-    public void WhenParsingXmlDocumentWithSingleDictionary_ThenItIsParsedCorrectly()
+    [Fact]
+    public void Load_XmlDictionary_Test()
     {
         using var stream = TestFileHelper.GetTestFileStream("TestFiles/asdf-Info.plist");
         var node = PList.Load(stream);
 
-        Assert.That(node, Is.Not.Null);
+        Assert.NotNull(node);
 
         var dictionary = node as DictionaryNode;
-        Assert.That(dictionary, Is.Not.Null);
+        Assert.NotNull(dictionary);
 
-        Assert.That(dictionary, Has.Count.EqualTo(14));
+        Assert.Equal(14, dictionary.Count);
     }
 
-    [Test]
-    public void WhenDocumentContainsNestedCollections_ThenDocumentIsParsedCorrectly()
+    [Fact]
+    public void Load_XmlNestedCollections_Test()
     {
         using var stream = TestFileHelper.GetTestFileStream("TestFiles/dict-inside-array.plist");
         var node = PList.Load(stream);
 
-        Assert.That(node, Is.Not.Null);
-        Assert.That(node, Is.InstanceOf<DictionaryNode>());
+        Assert.NotNull(node);
+        Assert.IsType<DictionaryNode>(node);
 
         var array = ((DictionaryNode)node).Values.First() as ArrayNode;
-        Assert.That(array, Is.Not.Null);
-        Assert.That(array, Has.Count.EqualTo(1));
+        Assert.NotNull(array);
+        Assert.Single(array);
 
         var dictionary = array[0] as DictionaryNode;
-        Assert.That(dictionary, Is.Not.Null);
+        Assert.NotNull(dictionary);
 
-        Assert.That(dictionary, Has.Count.EqualTo(4));
+        Assert.Equal(4, dictionary.Count);
     }
 
-    [Test]
-    public void WhenDocumentContainsNestedCollectionsAndComplexText_ThenDocumentIsParsedCorrectly()
+    [Fact]
+    public void Load_XmlNestedCollectionsWithComplexText_Test()
     {
         using var stream = TestFileHelper.GetTestFileStream("TestFiles/Pods-acknowledgements.plist");
         var root = PList.Load(stream) as DictionaryNode;
 
-        Assert.That(root, Is.Not.Null);
-        Assert.That(root, Has.Count.EqualTo(3));
+        Assert.NotNull(root);
+        Assert.Equal(3, root.Count);
 
-        Assert.That(root["StringsTable"], Is.InstanceOf<StringNode>());
-        Assert.That(root["Title"], Is.InstanceOf<StringNode>());
+        Assert.Multiple(() =>
+        {
+            Assert.IsType<StringNode>(root["StringsTable"]);
+            Assert.IsType<StringNode>(root["Title"]);
+        });
 
         var array = root["PreferenceSpecifiers"] as ArrayNode;
-        Assert.That(array, Is.Not.Null);
-        Assert.That(array, Has.Count.EqualTo(15));
+        Assert.NotNull(array);
+        Assert.Equal(15, array.Count);
 
         foreach (var node in array)
         {
-            Assert.That(node, Is.InstanceOf<DictionaryNode>());
+            Assert.IsType<DictionaryNode>(node);
 
             var dictionary = (DictionaryNode)node;
-            Assert.That(dictionary, Has.Count.EqualTo(3));
+            Assert.Equal(3, dictionary.Count);
         }
     }
 
-    [Test]
-    public void WhenDocumentContainsEmptyArray_ThenDocumentIsParsedCorrectly()
+    [Fact]
+    public void Load_XmlEmptyArray_Test()
     {
         using var stream = TestFileHelper.GetTestFileStream("TestFiles/empty-array.plist");
         var root = PList.Load(stream) as DictionaryNode;
 
-        Assert.That(root, Is.Not.Null);
-        Assert.That(root, Has.Count.EqualTo(1));
+        Assert.NotNull(root);
+        Assert.Single(root);
 
-        Assert.That(root["Entitlements"], Is.InstanceOf<DictionaryNode>());
+        Assert.IsType<DictionaryNode>(root["Entitlements"]);
         var dict = root["Entitlements"] as DictionaryNode;
 
         var array = dict["com.apple.developer.icloud-container-identifiers"] as ArrayNode;
-        Assert.That(array, Is.Not.Null);
-        Assert.That(array.Count, Is.EqualTo(0));
+        Assert.NotNull(array);
+        Assert.Empty(array);
     }
 
-    [Test]
-    public void WhenReadingUid_UidNodeIsParsed()
+    [Fact]
+    public void Load_XmlUid_Test()
     {
-        try
-        {
-            using var stream = TestFileHelper.GetTestFileStream("TestFiles/github-7-xml.plist");
-            var node = PList.Load(stream);
-            Assert.Pass();
-        }
-        catch (PListFormatException ex)
-        {
-            Assert.Fail(ex.Message);
-        }
+        using var stream = TestFileHelper.GetTestFileStream("TestFiles/github-7-xml.plist");
+        Assert.NotNull(PList.Load(stream));
     }
 }

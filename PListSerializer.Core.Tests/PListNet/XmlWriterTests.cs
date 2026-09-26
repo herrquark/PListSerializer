@@ -1,13 +1,12 @@
-﻿using System.Text;
+using System.Text;
 using PListNet.Nodes;
 
 namespace PListNet.Tests;
 
-[TestFixture]
 public class XmlWriterTests
 {
-    [Test]
-    public void WhenXmlFormatIsSavedAndOpened_ThenParsedDocumentMatchesTheOriginal()
+    [Fact]
+    public void Save_XmlRoundTrip_Test()
     {
         using var stream = TestFileHelper.GetTestFileStream("TestFiles/utf8-Info.plist");
 
@@ -21,29 +20,32 @@ public class XmlWriterTests
         var newNode = PList.Load(outStream);
 
         // compare
-        Assert.That(newNode.GetType().Name, Is.EqualTo(node.GetType().Name));
+        Assert.Equal(node.GetType().Name, newNode.GetType().Name);
 
         var oldDict = node as DictionaryNode;
         var newDict = newNode as DictionaryNode;
 
-        Assert.That(oldDict, Is.Not.Null);
-        Assert.That(newDict, Is.Not.Null);
-        Assert.That(newDict, Has.Count.EqualTo(oldDict.Count));
+        Assert.NotNull(oldDict);
+        Assert.NotNull(newDict);
+        Assert.Equal(oldDict.Count, newDict.Count);
 
         foreach (var key in oldDict.Keys)
         {
-            Assert.That(newDict.ContainsKey(key), Is.True);
+            Assert.Contains(key, newDict);
 
             var oldValue = oldDict[key];
             var newValue = newDict[key];
 
-            Assert.That(newValue.GetType().Name, Is.EqualTo(oldValue.GetType().Name));
-            Assert.That(newValue, Is.EqualTo(oldValue));
+            Assert.Multiple(() =>
+            {
+                Assert.Equal(oldValue.GetType().Name, newValue.GetType().Name);
+                Assert.Equal(oldValue, newValue);
+            });
         }
     }
 
-    [Test]
-    public void WhenBooleanValueIsSaved_ThenThereIsNoWhiteSpace()
+    [Fact]
+    public void Save_XmlBoolean_Test()
     {
         using var outStream = new MemoryStream();
         // create basic PList containing a boolean value
@@ -57,11 +59,11 @@ public class XmlWriterTests
         using var reader = new StreamReader(outStream);
         var contents = reader.ReadToEnd();
 
-        Assert.That(contents.Contains("<true/>"), Is.True);
+        Assert.Contains("<true/>", contents);
     }
 
-    [Test]
-    public void WhenXmlPlistWithBooleanValueIsLoadedAndSaved_ThenWhiteSpaceMatches()
+    [Fact]
+    public void Save_XmlBooleanWhitespace_Test()
     {
         using var stream = TestFileHelper.GetTestFileStream("TestFiles/github-20.plist");
 
@@ -72,12 +74,12 @@ public class XmlWriterTests
         stream.Seek(0, SeekOrigin.Begin);
 
         var root = PList.Load(stream) as DictionaryNode;
-        Assert.That(root, Is.Not.Null);
+        Assert.NotNull(root);
 
         // verify that we parsed expected content
         var node = root["ABool"] as BooleanNode;
-        Assert.That(node, Is.Not.Null);
-        Assert.That(node.Value, Is.True);
+        Assert.NotNull(node);
+        Assert.True(node.Value);
 
         // write the file out to memory and check that there is still no space
         // in the written out boolean node
@@ -90,48 +92,51 @@ public class XmlWriterTests
         using var outReader = new StreamReader(outStream);
         var contents = outReader.ReadToEnd();
 
-        Assert.That(contents, Is.EqualTo(source));
+        Assert.Equal(source, contents);
     }
 
-    [Test]
-    public void WhenStringContainsUnicode_ThenStringIsWrappedInStringTag()
+    [Fact]
+    public void Save_XmlUnicodeString_Test()
     {
         using var outStream = new MemoryStream();
         var utf16value = "😂test";
 
-        // create basic PList containing a boolean value
+        // create basic PList containing a string value
         var node = new DictionaryNode { ["Test"] = new StringNode(utf16value) };
 
         // save and reset stream
         PList.Save(node, outStream, PListFormat.Xml);
         outStream.Seek(0, SeekOrigin.Begin);
 
-        // check that boolean was written out without a space per spec (see also issue #11)
+        // check that the string was written out inside a string tag
         using var reader = new StreamReader(outStream);
         var contents = reader.ReadToEnd();
 
-        Assert.That(contents.Contains($"<string>{utf16value}</string>"), Is.True);
+        Assert.Contains($"<string>{utf16value}</string>", contents);
     }
 
-    [Test]
-    public void WhenWriteXmlMetaIsFalse_ThenWriteNoXmlMeta()
+    [Fact]
+    public void ToString_WithoutPlistMeta_Test()
     {
         var node = new BooleanNode(true);
 
-        // save and reset stream
-        var str = PList.ToString(node,  writePlistMeta: false);
+        var str = PList.ToString(node, writePlistMeta: false);
 
-        Assert.That(str, Does.Not.Contain("<?xml version=\"1.0\" encoding=\"utf-8\"?>"));
-        Assert.That(str, Contains.Substring("<true/>"));
+        Assert.Multiple(() =>
+        {
+            Assert.DoesNotContain("<?xml version=\"1.0\" encoding=\"utf-8\"?>", str);
+            Assert.Contains("<true/>", str);
+        });
     }
 
-    [TestCase("TestFiles/asdf-Info.plist")]
-    [TestCase("TestFiles/unity.xml.plist")]
-    [TestCase("TestFiles/uid-test.xml.plist")]
-    [TestCase("TestFiles/utf8-Info.plist")]
-    [TestCase("TestFiles/github-7-xml.plist")]
-    [TestCase("TestFiles/github-15-large-xml.plist")]
-    public void WhenReadXml_MustWriteTheSameXml(string fileName)
+    [Theory]
+    [InlineData("TestFiles/asdf-Info.plist")]
+    [InlineData("TestFiles/unity.xml.plist")]
+    [InlineData("TestFiles/uid-test.xml.plist")]
+    [InlineData("TestFiles/utf8-Info.plist")]
+    [InlineData("TestFiles/github-7-xml.plist")]
+    [InlineData("TestFiles/github-15-large-xml.plist")]
+    public void ToString_SourceXml_Test(string fileName)
     {
         using var stream = TestFileHelper.GetTestFileStream(fileName);
 
@@ -144,6 +149,6 @@ public class XmlWriterTests
         var root = PList.Load(stream) as DictionaryNode;
         var serialized = PList.ToString(root);
 
-        Assert.That(serialized, Is.EqualTo(source));
+        Assert.Equal(source, serialized);
     }
 }

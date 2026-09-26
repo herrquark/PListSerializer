@@ -34,7 +34,6 @@
     </ItemGroup>
     <ItemGroup>
         <EmbeddedResource Include="PListNet\TestFiles\*.plist" />
-        <Compile Remove="PListNet\**" />
     </ItemGroup>
 
     <ItemGroup>

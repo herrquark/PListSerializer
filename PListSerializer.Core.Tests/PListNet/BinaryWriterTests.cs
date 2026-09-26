@@ -1,11 +1,11 @@
-﻿using PListNet.Nodes;
+using PListNet.Nodes;
 
 namespace PListNet.Tests;
 
 public class BinaryWriterTests
 {
-    [Test]
-    public void WhenXmlFormatIsResavedAsBinaryAndOpened_ThenParsedDocumentMatchesTheOriginal()
+    [Fact]
+    public void Save_BinaryRoundTrip_Test()
     {
         using var stream = TestFileHelper.GetTestFileStream("TestFiles/asdf-Info.plist");
         var node = PList.Load(stream);
@@ -18,22 +18,25 @@ public class BinaryWriterTests
         var newNode = PList.Load(outStream);
 
         // compare
-        Assert.That(newNode.GetType().Name, Is.EqualTo(node.GetType().Name));
+        Assert.Equal(node.GetType().Name, newNode.GetType().Name);
 
         var oldDict = node as DictionaryNode;
         var newDict = newNode as DictionaryNode;
 
-        Assert.That(newDict, Has.Count.EqualTo(oldDict.Count));
+        Assert.Equal(oldDict.Count, newDict.Count);
 
         foreach (var key in oldDict.Keys)
         {
-            Assert.That(newDict.ContainsKey(key), Is.True);
+            Assert.Contains(key, newDict);
 
             var oldValue = oldDict[key];
             var newValue = newDict[key];
 
-            Assert.That(newValue.GetType().Name, Is.EqualTo(oldValue.GetType().Name));
-            Assert.That(newValue, Is.EqualTo(oldValue));
+            Assert.Multiple(() =>
+            {
+                Assert.Equal(oldValue.GetType().Name, newValue.GetType().Name);
+                Assert.Equal(oldValue, newValue);
+            });
         }
     }
 }

@@ -8,9 +8,9 @@
     <Description>Read, write and serialize Apple *.plist files.</Description>
     <Copyright>Copyright © 2009-2026</Copyright>
     <Authors>Vijay Santhanam, Christian Ecker, Michael Teper, maksgithub, Yury Quark</Authors>
-    <PackageId>PListSerializer.Quark</PackageId>
-    <Product>PListSerializer</Product>
-    <Company>PListSerializer</Company>
+    <PackageId>PlistSerializer.Quark</PackageId>
+    <Product>PlistSerializer</Product>
+    <Company>PlistSerializer</Company>
     <PackageProjectUrl>https://github.com/herrquark/PListSerializer</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/herrquark/PListSerializer.git</RepositoryUrl>

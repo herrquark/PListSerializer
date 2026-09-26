@@ -2,8 +2,8 @@
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-        <AssemblyTitle>PListSerializer.Core.Tests</AssemblyTitle>
-        <Product>PListSerializer.Core.Tests</Product>
+        <AssemblyTitle>PlistSerializer.Core.Tests</AssemblyTitle>
+        <Product>PlistSerializer.Core.Tests</Product>
         <Copyright>Copyright ©  2019</Copyright>
         <AssemblyVersion>1.0.0.0</AssemblyVersion>
         <FileVersion>1.0.0.0</FileVersion>
@@ -17,7 +17,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\PListSerializer.Core\PListSerializer.Core.csproj" />
+        <ProjectReference Include="..\PlistSerializer.Core\PlistSerializer.Core.csproj" />
     </ItemGroup>
 
     <ItemGroup>

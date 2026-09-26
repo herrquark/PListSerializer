@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Reflection;
 using PListNet;
 using PListNet.Nodes;
+using PListSerializer.Core.Extensions;
 
 namespace PListSerializer.Core;
 
@@ -102,7 +103,7 @@ public class Serializer
             return members;
 
         var props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-            .Where(p => p.CanWrite)
+            .Where(p => p.IsPlistMember())
             .Select(BuildGetterMember);
 
         var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public)
@@ -118,7 +119,7 @@ public class Serializer
     private static GetterMember BuildGetterMember(PropertyInfo p)
         => new()
         {
-            Name = p.Name,
+            Name = p.GetName(),
             Get = p.GetValue,
             DefaultValue = p.GetCustomAttributes(typeof(DefaultValueAttribute), true).FirstOrDefault() is DefaultValueAttribute defaultAttribute
                     ? defaultAttribute.Value
@@ -128,7 +129,7 @@ public class Serializer
     private static GetterMember BuildGetterMember(FieldInfo f)
         => new()
         {
-            Name = f.Name,
+            Name = f.GetName(),
             Get = f.GetValue,
             DefaultValue = f.GetCustomAttributes(typeof(DefaultValueAttribute), true).FirstOrDefault() is DefaultValueAttribute defaultAttribute
                 ? defaultAttribute.Value

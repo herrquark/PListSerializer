@@ -5,26 +5,20 @@ namespace PListSerializer.Core.Extensions;
 
 internal static class TypeExtensions
 {
+    // the interfaces deserialize into the concrete collection
     public static bool IsList(this Type type)
-    {
-        return type != null &&
-               type.IsGenericType &&
-               type.GetGenericTypeDefinition().IsAssignableFrom(typeof(List<>));
-    }
+        => type.IsGenericTypeOf(typeof(List<>), typeof(IList<>), typeof(ICollection<>), typeof(IEnumerable<>), typeof(IReadOnlyList<>), typeof(IReadOnlyCollection<>));
 
     public static bool IsHashSet(this Type type)
-    {
-        return type != null &&
-               type.IsGenericType &&
-               type.GetGenericTypeDefinition().IsAssignableFrom(typeof(HashSet<>));
-    }
+        => type.IsGenericTypeOf(typeof(HashSet<>), typeof(ISet<>));
 
     public static bool IsDictionary(this Type type)
-    {
-        return type != null &&
-               type.IsGenericType &&
-               type.GetGenericTypeDefinition().IsAssignableFrom(typeof(Dictionary<,>));
-    }
+        => type.IsGenericTypeOf(typeof(Dictionary<,>), typeof(IDictionary<,>), typeof(IReadOnlyDictionary<,>));
+
+    private static bool IsGenericTypeOf(this Type type, params Type[] definitions)
+        => type != null &&
+           type.IsGenericType &&
+           definitions.Contains(type.GetGenericTypeDefinition());
 
 
     private static ConcurrentDictionary<Type, IPlistTypeResolver> ResolverCache { get; set; } = [];

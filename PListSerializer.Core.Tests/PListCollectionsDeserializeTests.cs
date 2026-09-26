@@ -105,6 +105,39 @@ public class PListCollectionsDeserializeTests
     }
 
     [Fact]
+    public void Deserialize_InterfaceCollections_Test()
+    {
+        string[] strings = ["a", "b"];
+        var ints = new Dictionary<string, int> { ["one"] = 1, ["two"] = 2 };
+
+        var node = Serializer.Serialize(new ClassWithInterfaceCollections
+        {
+            List = strings,
+            Collection = strings,
+            Enumerable = strings,
+            ReadOnlyList = strings,
+            ReadOnlyCollection = strings,
+            Set = new HashSet<string>(strings),
+            Dictionary = ints,
+            ReadOnlyDictionary = ints
+        });
+
+        var res = Deserializer.Deserialize<ClassWithInterfaceCollections>(node);
+
+        Assert.Multiple(() =>
+        {
+            Assert.Equal(strings, res.List);
+            Assert.Equal(strings, res.Collection);
+            Assert.Equal(strings, res.Enumerable);
+            Assert.Equal(strings, res.ReadOnlyList);
+            Assert.Equal(strings, res.ReadOnlyCollection);
+            Assert.True(res.Set?.SetEquals(strings));
+            Assert.Equal(ints, res.Dictionary);
+            Assert.Equal(ints, res.ReadOnlyDictionary);
+        });
+    }
+
+    [Fact]
     public void Nullable_Test()
     {
         // test nullable properties

@@ -117,6 +117,21 @@ public class PListDeserializerTests
     }
 
     [Fact]
+    public void Deserialize_ReadOnlyMembers_Test()
+    {
+        var node = new DictionaryNode
+        {
+            ["Name"] = new StringNode("Name"),
+            ["Computed"] = new StringNode("Computed"),
+            ["Item"] = new StringNode("Item")
+        };
+
+        var res = Deserializer.Deserialize<ClassWithReadOnlyMembers>(node);
+
+        Assert.Equal("Name", res.Name);
+    }
+
+    [Fact]
     public void Serialize_EffectsInfo_Test()
     {
         var byteArray = File.ReadAllBytes(Path.Combine("Resources", "PList3.plist"));

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.ComponentModel;
+using System.Reflection;
 using PListNet;
 using PListNet.Nodes;
 using PListSerializer.Core.Extensions;
@@ -38,8 +39,9 @@ public class Deserializer
         if (node is not DictionaryNode dictionaryNode)
             return default;
 
+        // the declared type may be an interface, so always build the concrete collection
         var valueType = type.GenericTypeArguments[1];
-        var dictionary = (IDictionary)Activator.CreateInstance(type);
+        var dictionary = (IDictionary)Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(type.GenericTypeArguments));
 
         foreach (var kvp in dictionaryNode)
         {
@@ -79,7 +81,7 @@ public class Deserializer
             return default;
 
         var elementType = type.GenericTypeArguments[0];
-        var list = (IList)Activator.CreateInstance(type);
+        var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
 
         foreach (var itemNode in arrayNode)
             list.Add(Deserialize(elementType, itemNode));
@@ -93,8 +95,9 @@ public class Deserializer
             return default;
 
         var elementType = type.GenericTypeArguments[0];
-        var hashSet = Activator.CreateInstance(type);
-        var addMethod = type.GetMethod("Add");
+        var hashSetType = typeof(HashSet<>).MakeGenericType(elementType);
+        var hashSet = Activator.CreateInstance(hashSetType);
+        var addMethod = hashSetType.GetMethod("Add");
 
         foreach (var itemNode in arrayNode)
             addMethod.Invoke(hashSet, [Deserialize(elementType, itemNode)]);
@@ -118,7 +121,9 @@ public class Deserializer
         var resolvedType = type.GetResolver()?.ResolveType(dictionaryNode) ?? type;
 
         var instance = Activator.CreateInstance(resolvedType);
-        var properties = resolvedType.GetProperties();
+        var properties = resolvedType.GetProperties(BindingFlags.Instance | BindingFlags.Public)
+            .Where(p => p.IsPlistMember())
+            .ToArray();
 
         foreach (var kvp in dictionaryNode)
         {

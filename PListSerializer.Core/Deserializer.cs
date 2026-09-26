@@ -157,7 +157,7 @@ public class Deserializer
         return type switch
         {
             // nulls are always nulls
-            _ when value == null => null,
+            _ when value is null => null,
 
             // handle TimeSpan
             _ when type == typeof(TimeSpan) => value != null

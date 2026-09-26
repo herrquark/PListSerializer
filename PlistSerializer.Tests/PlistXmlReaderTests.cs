@@ -1,6 +1,6 @@
-using PlistSerializer.Core.Nodes;
+using PlistSerializer.Nodes;
 
-namespace PlistSerializer.Core.Tests;
+namespace PlistSerializer.Tests;
 
 public class PlistXmlReaderTests
 {

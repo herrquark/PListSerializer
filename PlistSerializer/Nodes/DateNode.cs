@@ -1,7 +1,7 @@
 using System.Globalization;
-using PlistSerializer.Core.Extensions;
+using PlistSerializer.Extensions;
 
-namespace PlistSerializer.Core.Nodes;
+namespace PlistSerializer.Nodes;
 
 /// <summary>
 /// A plist date.

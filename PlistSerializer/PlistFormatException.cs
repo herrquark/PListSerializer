@@ -1,6 +1,6 @@
 using System.Runtime.Serialization;
 
-namespace PlistSerializer.Core;
+namespace PlistSerializer;
 
 /// <summary>
 /// The exception thrown when a plist cannot be read or written.

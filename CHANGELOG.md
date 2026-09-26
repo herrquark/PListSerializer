@@ -3,7 +3,7 @@
 ### 2.0.0
  - the package is renamed from `PListSerializer.Quark` to `PlistSerializer.Quark`, which NuGet treats as the same package id
  - PListNet is merged into the package, so remove any direct `PListNet.Quark` reference when upgrading, or its types are defined twice
- - all types live under `PlistSerializer.Core`: `PListNet` becomes `PlistSerializer.Core`, `PListNet.Nodes` becomes `PlistSerializer.Core.Nodes`, and `PListSerializer.Core.Attributes` becomes `PlistSerializer.Core.Attributes`
+ - all types live under `PlistSerializer`: `PListNet` and `PListSerializer.Core` become `PlistSerializer`, `PListNet.Nodes` becomes `PlistSerializer.Nodes`, and `PListSerializer.Core.Attributes` becomes `PlistSerializer.Attributes`
  - `PList`, `PListFormat` and `PListFormatException` are renamed to `Plist`, `PlistFormat` and `PlistFormatException`
  - `Serializer` and `Deserializer` are static classes
  - `LightXmlWriterExtensions`, `BinaryFormatWriter`, `XmlFormatReader` and `FillNode.GetSchema` are no longer public

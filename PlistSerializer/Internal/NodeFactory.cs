@@ -1,6 +1,6 @@
-using PlistSerializer.Core.Nodes;
+using PlistSerializer.Nodes;
 
-namespace PlistSerializer.Core.Internal;
+namespace PlistSerializer.Internal;
 
 // creates concrete nodes from an XML tag or a binary type code
 internal static class NodeFactory

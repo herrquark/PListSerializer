@@ -1,8 +1,8 @@
 using System.Text;
-using PlistSerializer.Core.Extensions;
-using PlistSerializer.Core.Nodes;
+using PlistSerializer.Extensions;
+using PlistSerializer.Nodes;
 
-namespace PlistSerializer.Core.Internal;
+namespace PlistSerializer.Internal;
 
 // reads a binary plist, as described in
 // https://medium.com/@karaiskc/understanding-apples-binary-property-list-format-281e6da00dbd

@@ -1,7 +1,7 @@
 using System.Xml;
 using XmlTools;
 
-namespace PlistSerializer.Core;
+namespace PlistSerializer;
 
 /// <summary>
 /// A node of a plist tree.

@@ -1,8 +1,8 @@
 ﻿using System.Collections.Concurrent;
-using PlistSerializer.Core.Nodes;
-using PlistSerializer.Core.Tests.TestModels;
+using PlistSerializer.Nodes;
+using PlistSerializer.Tests.TestModels;
 
-namespace PlistSerializer.Core.Tests;
+namespace PlistSerializer.Tests;
 
 public class PlistConcurrencyTests
 {

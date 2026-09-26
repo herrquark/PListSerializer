@@ -1,8 +1,8 @@
 using System.Text;
-using PlistSerializer.Core.Extensions;
+using PlistSerializer.Extensions;
 using XmlTools;
 
-namespace PlistSerializer.Core.Nodes;
+namespace PlistSerializer.Nodes;
 
 /// <summary>
 /// A plist string.

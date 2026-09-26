@@ -1,6 +1,6 @@
 using XmlTools;
 
-namespace PlistSerializer.Core.Extensions;
+namespace PlistSerializer.Extensions;
 
 internal static class LightXmlWriterExtensions
 {

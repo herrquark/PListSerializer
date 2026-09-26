@@ -1,6 +1,6 @@
 # AGENTS.md
 
-PlistSerializer reads and writes Apple property lists and maps them to .NET objects, and ships as the NuGet package `PlistSerializer.Quark`. Everything lives in the one project `PlistSerializer.Core`, whose folders match its namespaces:
+PlistSerializer reads and writes Apple property lists and maps them to .NET objects, and ships as the NuGet package `PlistSerializer.Quark`. Everything lives in the one project `PlistSerializer`, whose folders match its namespaces:
 
 - `Plist` (`Load`, `Save`, `ToString`) reads and writes plist bytes in XML and binary format as a tree of `PNode`s, whose concrete types live in `Nodes/`. `Internal/` holds the binary reader and writer and the node factory. This layer was merged in from the maintainer's PList-Net fork.
 - `Serializer.Serialize(object) → PNode` and `Deserializer.Deserialize<T>(PNode)` map objects to and from that tree by reflection, steered by the `[PlistName]` and `[PlistTypeResolver]` attributes in `Attributes/` and by `IPlistTypeResolver`.
@@ -10,7 +10,7 @@ PlistSerializer reads and writes Apple property lists and maps them to .NET obje
 
 - `dotnet test` from the repo root builds both projects and runs the suite. It is the only gate, because the GitHub workflow is a placeholder that builds nothing.
 - To narrow a run, pass Microsoft Testing Platform flags after `--`: `dotnet test -- --filter-class "*PlistConcurrencyTests"` or `-- --filter-method "*Nullable_Test"`. The VSTest-style `dotnet test --filter` is silently ignored here and runs every test.
-- Every build packs `PlistSerializer.Core/bin/<Configuration>/PlistSerializer.Quark.<version>.nupkg` (`GeneratePackageOnBuild`). That file is expected output.
+- Every build packs `PlistSerializer/bin/<Configuration>/PlistSerializer.Quark.<version>.nupkg` (`GeneratePackageOnBuild`). That file is expected output.
 
 ## Conventions
 
@@ -45,13 +45,13 @@ Both entry points are static and cache reflection results in static `ConcurrentD
 
 ## Language and targets
 
-- `PlistSerializer.Core` targets `netstandard2.1` with `LangVersion latest`. Current C# syntax compiles, but BCL APIs newer than netstandard2.1 are unavailable, as are features that need runtime polyfills (`init`, `required`). The test project targets `net10.0`.
+- `PlistSerializer` targets `netstandard2.1` with `LangVersion latest`. Current C# syntax compiles, but BCL APIs newer than netstandard2.1 are unavailable, as are features that need runtime polyfills (`init`, `required`). The test project targets `net10.0`.
 - Nullable reference types are disabled in both projects, so reference types are declared without `?`.
-- The package version is `<Version>` in `PlistSerializer.Core/PlistSerializer.Core.csproj`, which also sets the assembly version. Version bumps go in their own `bump version` commit after the change. `CHANGELOG.md` is packed as the package's release notes, so each new version gets an entry at the top of its `PlistSerializer.Quark` section.
+- The package version is `<Version>` in `PlistSerializer/PlistSerializer.csproj`, which also sets the assembly version. Version bumps go in their own `bump version` commit after the change. `CHANGELOG.md` is packed as the package's release notes, so each new version gets an entry at the top of its `PlistSerializer.Quark` section.
 
 ## Tests
 
 - The suite uses xUnit v3 on Microsoft Testing Platform, with `Xunit` as a global using. Tests are named `<Operation>_<Subject>_Test` and group related asserts in `Assert.Multiple`.
-- Models live in `TestModels/` under the namespace `PlistSerializer.Core.Tests.TestModels`.
+- Models live in `TestModels/` under the namespace `PlistSerializer.Tests.TestModels`.
 - Small plists go inline as a raw string literal loaded with `Plist.Load(new MemoryStream(Encoding.UTF8.GetBytes(xml)))`, as `Deserialize_WithResolver_Test` does. Larger fixtures go in `Resources/`, which the test csproj copies to the output by glob, and a test opens one with `File.OpenRead(Path.Combine("Resources", "Name.plist"))`, spelling the file name with its exact casing, because Linux file systems are case-sensitive.
 - `ToString_SourceXml_Test` compares written XML with fixtures byte for byte, so fixtures keep their committed whitespace and line endings, which `.gitattributes` shields from git's conversion.

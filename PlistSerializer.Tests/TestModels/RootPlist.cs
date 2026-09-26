@@ -1,7 +1,7 @@
-﻿using PlistSerializer.Core.Attributes;
-using PlistSerializer.Core.Tests.TestModels.Effects;
+﻿using PlistSerializer.Attributes;
+using PlistSerializer.Tests.TestModels.Effects;
 
-namespace PlistSerializer.Core.Tests.TestModels;
+namespace PlistSerializer.Tests.TestModels;
 
 public class RootPlist
 {

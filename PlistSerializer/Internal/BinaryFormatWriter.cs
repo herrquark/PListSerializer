@@ -1,8 +1,8 @@
 using System.Buffers.Binary;
-using PlistSerializer.Core.Extensions;
-using PlistSerializer.Core.Nodes;
+using PlistSerializer.Extensions;
+using PlistSerializer.Nodes;
 
-namespace PlistSerializer.Core.Internal;
+namespace PlistSerializer.Internal;
 
 internal class BinaryFormatWriter
 {

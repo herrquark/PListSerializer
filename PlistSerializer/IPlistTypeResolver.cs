@@ -1,4 +1,4 @@
-namespace PlistSerializer.Core;
+namespace PlistSerializer;
 
 /// <summary>
 /// Picks the concrete type a dictionary node deserializes into. Attach it to a class with <see cref="Attributes.PlistTypeResolverAttribute"/>.

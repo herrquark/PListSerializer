@@ -1,4 +1,4 @@
-namespace PlistSerializer.Core;
+namespace PlistSerializer;
 
 /// <summary>
 /// The format of a plist file.

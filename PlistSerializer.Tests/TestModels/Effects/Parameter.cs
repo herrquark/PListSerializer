@@ -1,4 +1,4 @@
-﻿namespace PlistSerializer.Core.Tests.TestModels.Effects;
+﻿namespace PlistSerializer.Tests.TestModels.Effects;
 
 public class Parameter
 {

@@ -1,10 +1,10 @@
 using System.Collections;
 using System.Xml;
-using PlistSerializer.Core.Extensions;
-using PlistSerializer.Core.Internal;
+using PlistSerializer.Extensions;
+using PlistSerializer.Internal;
 using XmlTools;
 
-namespace PlistSerializer.Core.Nodes;
+namespace PlistSerializer.Nodes;
 
 /// <summary>
 /// A plist dictionary of nodes keyed by strings.

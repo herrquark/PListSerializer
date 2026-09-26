@@ -1,6 +1,6 @@
-﻿using PlistSerializer.Core.Attributes;
+﻿using PlistSerializer.Attributes;
 
-namespace PlistSerializer.Core.Tests.TestModels;
+namespace PlistSerializer.Tests.TestModels;
 
 public class Holder<T>
 {

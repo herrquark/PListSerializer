@@ -1,10 +1,10 @@
 using System.Text;
 using System.Xml;
-using PlistSerializer.Core.Extensions;
-using PlistSerializer.Core.Internal;
+using PlistSerializer.Extensions;
+using PlistSerializer.Internal;
 using XmlTools;
 
-namespace PlistSerializer.Core;
+namespace PlistSerializer;
 
 /// <summary>
 /// Reads and writes property lists in XML and binary format.

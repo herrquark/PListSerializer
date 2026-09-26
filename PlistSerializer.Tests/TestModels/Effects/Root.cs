@@ -1,6 +1,6 @@
-﻿using PlistSerializer.Core.Attributes;
+﻿using PlistSerializer.Attributes;
 
-namespace PlistSerializer.Core.Tests.TestModels.Effects;
+namespace PlistSerializer.Tests.TestModels.Effects;
 
 public class Root
 {

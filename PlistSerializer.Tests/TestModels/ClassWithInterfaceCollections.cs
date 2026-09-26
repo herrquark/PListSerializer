@@ -1,4 +1,4 @@
-namespace PlistSerializer.Core.Tests.TestModels;
+namespace PlistSerializer.Tests.TestModels;
 
 public class ClassWithInterfaceCollections
 {

@@ -1,4 +1,4 @@
-namespace PlistSerializer.Core.Internal;
+namespace PlistSerializer.Internal;
 
 // the 32-byte trailer at the end of a binary plist, which Apple defines as
 //  uint8_t _unused[5];

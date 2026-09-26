@@ -1,4 +1,4 @@
-namespace PlistSerializer.Core.Attributes;
+namespace PlistSerializer.Attributes;
 
 /// <summary>
 /// Makes the deserializer ask an <see cref="IPlistTypeResolver"/> for the concrete type whenever the decorated class is the declared type.

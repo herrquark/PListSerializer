@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace PlistSerializer.Core.Attributes;
+namespace PlistSerializer.Attributes;
 
 /// <summary>
 /// Sets the plist key of a property or field, which is otherwise its C# name.

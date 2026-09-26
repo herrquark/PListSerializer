@@ -1,7 +1,7 @@
-﻿using PlistSerializer.Core.Attributes;
-using PlistSerializer.Core.Nodes;
+﻿using PlistSerializer.Attributes;
+using PlistSerializer.Nodes;
 
-namespace PlistSerializer.Core.Tests.TestModels;
+namespace PlistSerializer.Tests.TestModels;
 
 
 internal class ResolverTestClass

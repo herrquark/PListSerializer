@@ -2,7 +2,7 @@
 .Net library for reading and writing Apple property lists in binary and XML format, and for mapping them to and from .Net objects.
 
 ```csharp
-using PlistSerializer.Core;
+using PlistSerializer;
 
 var node = Plist.Load(stream);
 var settings = Deserializer.Deserialize<Settings>(node);

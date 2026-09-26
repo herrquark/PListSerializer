@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
 using System.Reflection;
-using PlistSerializer.Core.Attributes;
+using PlistSerializer.Attributes;
 
-namespace PlistSerializer.Core.Extensions;
+namespace PlistSerializer.Extensions;
 
 internal static class TypeExtensions
 {

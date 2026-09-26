@@ -1,10 +1,10 @@
 using System.Collections;
 using System.ComponentModel;
 using System.Reflection;
-using PlistSerializer.Core.Extensions;
-using PlistSerializer.Core.Nodes;
+using PlistSerializer.Extensions;
+using PlistSerializer.Nodes;
 
-namespace PlistSerializer.Core;
+namespace PlistSerializer;
 
 /// <summary>
 /// Maps plist nodes to .NET objects.

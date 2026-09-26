@@ -1,4 +1,4 @@
-namespace PlistSerializer.Core.Nodes;
+namespace PlistSerializer.Nodes;
 
 /// <summary>
 /// A plist data blob.

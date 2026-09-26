@@ -28,7 +28,7 @@
     <EmbeddedResource Include="TestFiles\github-20.plist" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\PListNet\PListNet.csproj" />
+    <ProjectReference Include="..\PListSerializer.Core\PListSerializer.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />

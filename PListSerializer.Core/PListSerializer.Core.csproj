@@ -5,15 +5,16 @@
 
     <Version>1.6.3</Version>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <Description>PList Serializer/Deserializer</Description>
-    <Copyright>Copyright © 2024</Copyright>
-    <Authors>maksgithub, Yury Quark</Authors>
+    <Description>Read, write and serialize Apple *.plist files.</Description>
+    <Copyright>Copyright © 2009-2026</Copyright>
+    <Authors>Vijay Santhanam, Christian Ecker, Michael Teper, maksgithub, Yury Quark</Authors>
     <PackageId>PListSerializer.Quark</PackageId>
     <Product>PListSerializer</Product>
     <Company>PListSerializer</Company>
     <PackageProjectUrl>https://github.com/herrquark/PListSerializer</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/herrquark/PListSerializer.git</RepositoryUrl>
+    <PackageReleaseNotes>(Package release notes are in CHANGELOG.md)</PackageReleaseNotes>
     <PackageLicenseExpression>BSD-2-Clause</PackageLicenseExpression>
     <LangVersion>latest</LangVersion>
     <IsPackable>true</IsPackable>
@@ -27,14 +28,24 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <Target Name="InjectPackageReleaseNotesFromFile" BeforeTargets="GenerateNuspec" Condition="Exists('../CHANGELOG.md')">
+    <PropertyGroup>
+      <PackageReleaseNotes>$([System.IO.File]::ReadAllText("$(MSBuildProjectDirectory)/../CHANGELOG.md"))</PackageReleaseNotes>
+    </PropertyGroup>
+  </Target>
+
   <ItemGroup>
     <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\CHANGELOG.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="PListNet.Quark" Version="3.4.4" />
+    <PackageReference Include="LightXmlWriter" Version="1.1.0" />
   </ItemGroup>
 </Project>

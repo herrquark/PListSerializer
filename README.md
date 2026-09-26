@@ -1,10 +1,12 @@
-# PListSerializer
-.Net library for reading and writing Apple *.plist files in binary and XML format, and for mapping them to and from .Net objects.
+# PlistSerializer
+.Net library for reading and writing Apple property lists in binary and XML format, and for mapping them to and from .Net objects.
 
 ```csharp
-var node = PList.Load(stream);                           // PListNet
-var settings = Deserializer.Deserialize<Settings>(node); // PListSerializer.Core
-var xml = PList.ToString(Serializer.Serialize(settings));
+using PlistSerializer.Core;
+
+var node = Plist.Load(stream);
+var settings = Deserializer.Deserialize<Settings>(node);
+var xml = Plist.ToString(Serializer.Serialize(settings));
 ```
 
 ## Acknowledgments

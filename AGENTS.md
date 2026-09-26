@@ -1,19 +1,26 @@
 # AGENTS.md
 
-PListSerializer reads and writes Apple plist files and maps them to .NET objects, and ships as the NuGet package `PListSerializer.Quark`. One assembly holds two layers:
+PlistSerializer reads and writes Apple property lists and maps them to .NET objects, and ships as the NuGet package `PlistSerializer.Quark`. Everything lives in the one project `PlistSerializer.Core`, whose folders match its namespaces:
 
-- PListNet, in `PListSerializer.Core/PListNet/`, reads and writes plist bytes in XML and binary format as a `PNode` tree (`PList.Load`, `PList.Save`, `PList.ToString`). It was merged in from the maintainer's PList-Net fork and keeps its `PListNet` and `PListNet.Nodes` namespaces, which consumers import directly, so files there use those namespaces rather than the folder-derived one.
-- The serializer maps objects to and from that tree by reflection. Its public surface is `Serializer.Serialize(object) → PNode`, `Deserializer.Deserialize<T>(PNode)`, the `[PlistName]` and `[PlistTypeResolver]` attributes, and `IPlistTypeResolver`, all under `PListSerializer.Core`.
+- `Plist` (`Load`, `Save`, `ToString`) reads and writes plist bytes in XML and binary format as a tree of `PNode`s, whose concrete types live in `Nodes/`. `Internal/` holds the binary reader and writer and the node factory. This layer was merged in from the maintainer's PList-Net fork.
+- `Serializer.Serialize(object) → PNode` and `Deserializer.Deserialize<T>(PNode)` map objects to and from that tree by reflection, steered by the `[PlistName]` and `[PlistTypeResolver]` attributes in `Attributes/` and by `IPlistTypeResolver`.
+- `Extensions/` holds the internal helpers of both layers.
 
 ## Build and test
 
 - `dotnet test` from the repo root builds both projects and runs the suite. It is the only gate, because the GitHub workflow is a placeholder that builds nothing.
-- To narrow a run, pass Microsoft Testing Platform flags after `--`: `dotnet test -- --filter-class "*PListConcurrencyTests"` or `-- --filter-method "*Nullable_Test"`. The VSTest-style `dotnet test --filter` is silently ignored here and runs every test.
-- Every build packs `PListSerializer.Core/bin/<Configuration>/PListSerializer.Quark.<version>.nupkg` (`GeneratePackageOnBuild`). That file is expected output.
+- To narrow a run, pass Microsoft Testing Platform flags after `--`: `dotnet test -- --filter-class "*PlistConcurrencyTests"` or `-- --filter-method "*Nullable_Test"`. The VSTest-style `dotnet test --filter` is silently ignored here and runs every test.
+- Every build packs `PlistSerializer.Core/bin/<Configuration>/PlistSerializer.Quark.<version>.nupkg` (`GeneratePackageOnBuild`). That file is expected output.
+
+## Conventions
+
+- "Plist" is one word in every name (`Plist`, `PlistFormat`, `IsPlistMember`), because Apple never abbreviates "property list" as "PList". `PNode` is the one established exception.
+- Public API members carry XML docs; internal members and private helpers do not.
+- Private `static readonly` fields are PascalCase, private instance fields are `_camelCase`.
 
 ## Serializer and Deserializer are asymmetric
 
-The two classes were written separately and share only the helpers in `Extensions/`. A change to one side leaves the other untouched, and a model that deserializes correctly may still fail to round-trip.
+The two classes were written separately and share only the reflection helpers in `Extensions/` (`TypeExtensions`, `PropertyInfoExtensions`). A change to one side leaves the other untouched, and a model that deserializes correctly may still fail to round-trip.
 
 | | `Serializer` | `Deserializer` |
 |---|---|---|
@@ -34,17 +41,17 @@ Each side dispatches in one `switch` expression: `Serializer.Serialize` and `Des
 
 ## Thread safety
 
-Both entry points are static and cache reflection results in static `ConcurrentDictionary` instances (`Serializer.MembersCache`, `TypeExtensions.ResolverCache`). Populate a cache through `GetOrAdd` or the indexer, which tolerate two threads adding the same key. A check-then-`Add` throws on that collision and has already caused one race. Every new cache gets a case in `PListConcurrencyTests`, which closes a generic holder over every exported BCL class so that each call meets an uncached type, with a `Barrier` releasing all threads into each round together. That test is timing-based, so a single green run is weak evidence. Repeat it a few times.
+Both entry points are static and cache reflection results in static `ConcurrentDictionary` instances (`Serializer.MembersCache`, `TypeExtensions.ResolverCache`). Populate a cache through `GetOrAdd` or the indexer, which tolerate two threads adding the same key. A check-then-`Add` throws on that collision and has already caused one race. Every new cache gets a case in `PlistConcurrencyTests`, which closes a generic holder over every exported BCL class so that each call meets an uncached type, with a `Barrier` releasing all threads into each round together. That test is timing-based, so a single green run is weak evidence. Repeat it a few times.
 
 ## Language and targets
 
-- `PListSerializer.Core` targets `netstandard2.1` with `LangVersion latest`. Current C# syntax compiles, but BCL APIs newer than netstandard2.1 are unavailable, as are features that need runtime polyfills (`init`, `required`). The test project targets `net10.0`.
+- `PlistSerializer.Core` targets `netstandard2.1` with `LangVersion latest`. Current C# syntax compiles, but BCL APIs newer than netstandard2.1 are unavailable, as are features that need runtime polyfills (`init`, `required`). The test project targets `net10.0`.
 - Nullable reference types are disabled in both projects, so reference types are declared without `?`.
-- The package version is `<Version>` in `PListSerializer.Core/PListSerializer.Core.csproj`. Version bumps go in their own `bump version` commit after the change. `CHANGELOG.md` is packed as the package's release notes, so each new version gets an entry at the top of its `PListSerializer.Quark` section.
+- The package version is `<Version>` in `PlistSerializer.Core/PlistSerializer.Core.csproj`, which also sets the assembly version. Version bumps go in their own `bump version` commit after the change. `CHANGELOG.md` is packed as the package's release notes, so each new version gets an entry at the top of its `PlistSerializer.Quark` section.
 
 ## Tests
 
 - The suite uses xUnit v3 on Microsoft Testing Platform, with `Xunit` as a global using. Tests are named `<Operation>_<Subject>_Test` and group related asserts in `Assert.Multiple`.
-- Models live in `TestModels/` under the namespace `PListSerializer.Core.Tests.TestModels`.
-- Small plists go inline as a raw string literal loaded with `PList.Load(new MemoryStream(Encoding.UTF8.GetBytes(xml)))`, as `Deserialize_WithResolver_Test` does. A fixture file in `Resources/` needs its own `<None Update="Resources\Name.plist" CopyToOutputDirectory="PreserveNewest" />` entry in the test csproj, and the test must spell the file name with its exact casing, because Linux file systems are case-sensitive.
-- PListNet's format tests live in `PListNet/` under the namespace `PListNet.Tests`. Their fixtures in `PListNet/TestFiles/` are embedded by a glob in the test csproj and opened with `TestFileHelper.GetTestFileStream("TestFiles/name.plist")`. `ToString_SourceXml_Test` compares written XML with the fixture byte for byte, so fixtures keep their committed whitespace and line endings, which `.gitattributes` shields from git's conversion.
+- Models live in `TestModels/` under the namespace `PlistSerializer.Core.Tests.TestModels`.
+- Small plists go inline as a raw string literal loaded with `Plist.Load(new MemoryStream(Encoding.UTF8.GetBytes(xml)))`, as `Deserialize_WithResolver_Test` does. Larger fixtures go in `Resources/`, which the test csproj copies to the output by glob, and a test opens one with `File.OpenRead(Path.Combine("Resources", "Name.plist"))`, spelling the file name with its exact casing, because Linux file systems are case-sensitive.
+- `ToString_SourceXml_Test` compares written XML with fixtures byte for byte, so fixtures keep their committed whitespace and line endings, which `.gitattributes` shields from git's conversion.

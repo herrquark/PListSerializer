@@ -1,10 +1,14 @@
-﻿## PListSerializer.Quark
+﻿## PlistSerializer.Quark
 
 ### 2.0.0
- - PListNet is merged into the package: `PList`, `PNode` and the `PListNet.Nodes` types now ship in `PListSerializer.Core.dll` under their original namespaces
- - the `PListNet.Quark` dependency is gone; remove any direct `PListNet.Quark` reference when upgrading, or the `PListNet` types are defined twice
+ - the package is renamed from `PListSerializer.Quark` to `PlistSerializer.Quark`, which NuGet treats as the same package id
+ - PListNet is merged into the package, so remove any direct `PListNet.Quark` reference when upgrading, or its types are defined twice
+ - all types live under `PlistSerializer.Core`: `PListNet` becomes `PlistSerializer.Core`, `PListNet.Nodes` becomes `PlistSerializer.Core.Nodes`, and `PListSerializer.Core.Attributes` becomes `PlistSerializer.Core.Attributes`
+ - `PList`, `PListFormat` and `PListFormatException` are renamed to `Plist`, `PlistFormat` and `PlistFormatException`
+ - `Serializer` and `Deserializer` are static classes
+ - `LightXmlWriterExtensions`, `BinaryFormatWriter`, `XmlFormatReader` and `FillNode.GetSchema` are no longer public
 
-## PListNet.Quark (merged into PListSerializer.Quark 2.0.0)
+## PListNet.Quark (merged into PlistSerializer.Quark 2.0.0)
 
 ### 3.4.4
  - use fast and simple [`LightXmlWriter`](https://github.com/lechu445/LightXmlWriter) for XML serialization

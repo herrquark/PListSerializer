@@ -1,6 +1,6 @@
-﻿namespace PListNet.Internal;
+﻿namespace PlistSerializer.Core.Internal;
 
-internal struct PListTrailer
+internal struct PlistTrailer
 {
     public byte[]   Unused;
     public byte     SortVersionl;

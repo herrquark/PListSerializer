@@ -1,7 +1,7 @@
-﻿namespace PListNet.Nodes;
+﻿namespace PlistSerializer.Core.Nodes;
 
 /// <summary>
-/// Represents a byte[] Value from a PList
+/// Represents a byte[] Value from a Plist
 /// </summary>
 public sealed class DataNode : PNode<byte[]>
 {
@@ -18,7 +18,7 @@ public sealed class DataNode : PNode<byte[]>
     internal override byte BinaryTag => 4;
 
     /// <summary>
-    /// Gets the length of this PList element.
+    /// Gets the length of this Plist element.
     /// </summary>
     internal override int BinaryLength => Value.Length;
 
@@ -60,7 +60,7 @@ public sealed class DataNode : PNode<byte[]>
         Value = new byte[nodeLength];
 
         if (stream.Read(Value, 0, Value.Length) != Value.Length)
-            throw new PListFormatException();
+            throw new PlistFormatException();
     }
 
     /// <summary>

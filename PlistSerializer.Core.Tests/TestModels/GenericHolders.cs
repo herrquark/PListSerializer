@@ -1,7 +1,6 @@
-﻿using PListNet;
-using PListSerializer.Core.Attributes;
+﻿using PlistSerializer.Core.Attributes;
 
-namespace PListSerializer.Core.Tests.TestModels;
+namespace PlistSerializer.Core.Tests.TestModels;
 
 public class Holder<T>
 {

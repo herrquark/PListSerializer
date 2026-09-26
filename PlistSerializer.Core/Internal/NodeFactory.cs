@@ -1,9 +1,9 @@
-﻿using PListNet.Nodes;
+﻿using PlistSerializer.Core.Nodes;
 
-namespace PListNet.Internal;
+namespace PlistSerializer.Core.Internal;
 
 /// <summary>
-/// Singleton class which generates concrete <see cref="T:PListNet.PNode"/> from the Tag or TypeCode
+/// Singleton class which generates concrete <see cref="PNode"/> from the Tag or TypeCode
 /// </summary>
 internal static class NodeFactory
 {
@@ -62,13 +62,13 @@ internal static class NodeFactory
     }
 
     /// <summary>
-    /// Creates a concrete <see cref="T:PListNet.PNode"/> object secified specified by it's typecode.
+    /// Creates a concrete <see cref="PNode"/> object secified specified by it's typecode.
     /// </summary>
     /// <param name="binaryTag">The typecode of the element.</param>
     /// <param name="length">The length of the element
-    /// (required only for <see cref="T:PListNet.Primitives.PListBool"/>, <see cref="T:PListNet.Primitives.PListNull"/>
-    /// and <see cref="T:PListNet.Primitives.PListFill"/>).</param>
-    /// <returns>The created <see cref="T:PListNet.PNode"/> object</returns>
+    /// (required only for <see cref="BooleanNode"/>, <see cref="NullNode"/>
+    /// and <see cref="FillNode"/>).</param>
+    /// <returns>The created <see cref="PNode"/> object</returns>
     public static PNode Create(byte binaryTag, int length)
         => binaryTag switch
         {
@@ -76,33 +76,33 @@ internal static class NodeFactory
             0 when length == 0x0F => new FillNode(),
             6 => new StringNode { IsUtf16 = true },
             _ when _binaryTags.ContainsKey(binaryTag) => (PNode)Activator.CreateInstance(_binaryTags[binaryTag]),
-            _ => throw new PListFormatException($"Unknown node - binary tag {binaryTag}")
+            _ => throw new PlistFormatException($"Unknown node - binary tag {binaryTag}")
         };
 
 
     /// <summary>
-    /// Creates a concrete <see cref="T:PListNet.PNode"/> object secified specified by it's tag.
+    /// Creates a concrete <see cref="PNode"/> object secified specified by it's tag.
     /// </summary>
     /// <param name="tag">The tag of the element.</param>
-    /// <returns>The created <see cref="T:PListNet.PNode"/> object</returns>
+    /// <returns>The created <see cref="PNode"/> object</returns>
     public static PNode Create(string tag)
         => _xmlTags.ContainsKey(tag)
             ? (PNode)Activator.CreateInstance(_xmlTags[tag])
-            : throw new PListFormatException($"Unknown node - XML tag \"{tag}\"");
+            : throw new PlistFormatException($"Unknown node - XML tag \"{tag}\"");
 
     /// <summary>
-    /// Creates a <see cref="T:PListNet.PNode"/> object used for exteded length information.
+    /// Creates a <see cref="PNode"/> object used for exteded length information.
     /// </summary>
     /// <param name="length">The exteded length information.</param>
-    /// <returns>The <see cref="T:PListNet.PNode"/> object used for exteded length information.</returns>
+    /// <returns>The <see cref="PNode"/> object used for exteded length information.</returns>
     public static PNode CreateLengthElement(int length)
         => new IntegerNode(length);
 
     /// <summary>
-    /// Creates a <see cref="T:PListNet.PNode"/> object used for dictionary keys.
+    /// Creates a <see cref="PNode"/> object used for dictionary keys.
     /// </summary>
     /// <param name="key">The key.</param>
-    /// <returns>The <see cref="T:PListNet.PNode"/> object used for dictionary keys.</returns>
+    /// <returns>The <see cref="PNode"/> object used for dictionary keys.</returns>
     public static PNode CreateKeyElement(string key)
         => new StringNode(key);
 }

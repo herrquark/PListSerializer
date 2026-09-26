@@ -1,6 +1,6 @@
-﻿using PListSerializer.Core.Tests.TestModels.Effects;
+﻿using PlistSerializer.Core.Tests.TestModels.Effects;
 
-namespace PListSerializer.Core.Tests.TestModels;
+namespace PlistSerializer.Core.Tests.TestModels;
 
 public class EffectsPlist
 {

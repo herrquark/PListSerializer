@@ -1,12 +1,12 @@
 ﻿using System.Xml;
-using PlistNet.Extensions;
-using PListNet.Internal;
+using PlistSerializer.Core.Extensions;
+using PlistSerializer.Core.Internal;
 using XmlTools;
 
-namespace PListNet.Nodes;
+namespace PlistSerializer.Core.Nodes;
 
 /// <summary>
-/// Represents an dictionary with <see cref="T:System.String"/> keys and <see cref="T:PListNet.PNode"/> values
+/// Represents an dictionary with <see cref="T:System.String"/> keys and <see cref="PNode"/> values
 /// </summary>
 public class DictionaryNode : PNode, IDictionary<string, PNode>
 {
@@ -25,9 +25,9 @@ public class DictionaryNode : PNode, IDictionary<string, PNode>
     internal override byte BinaryTag => 0x0D;
 
     /// <summary>
-    /// Gets the length of this PList node.
+    /// Gets the length of this Plist node.
     /// </summary>
-    /// <returns>The length of this PList node.</returns>
+    /// <returns>The length of this Plist node.</returns>
     internal override int BinaryLength => Count;
 
     /// <summary>
@@ -156,7 +156,7 @@ public class DictionaryNode : PNode, IDictionary<string, PNode>
         => _dictionary.TryGetValue(key, out value);
 
     /// <summary>
-    /// Gets or sets the <see cref="PListNet.PNode"/> at the specified index.
+    /// Gets or sets the <see cref="PNode"/> at the specified index.
     /// </summary>
     /// <param name="index">Index.</param>
     public PNode this[string index]

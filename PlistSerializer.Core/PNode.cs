@@ -1,10 +1,10 @@
 ﻿using System.Xml;
 using XmlTools;
 
-namespace PListNet;
+namespace PlistSerializer.Core;
 
 /// <summary>
-/// PList document node.
+/// Plist document node.
 /// </summary>
 public abstract class PNode
 {
@@ -39,7 +39,7 @@ public abstract class PNode
 }
 
 /// <summary>
-/// PList node.
+/// Plist node.
 /// </summary>
 public abstract class PNode<T> : PNode, IEquatable<PNode>
 {
@@ -99,25 +99,25 @@ public abstract class PNode<T> : PNode, IEquatable<PNode>
         => other is PNode<T> node && Value.Equals(node.Value);
 
     /// <summary>
-    /// Determines whether the specified <see cref="System.Object"/> is equal to the current <see cref="T:PListNet.PNode`1"/>.
+    /// Determines whether the specified <see cref="System.Object"/> is equal to the current <see cref="PNode{T}"/>.
     /// </summary>
-    /// <param name="obj">The <see cref="System.Object"/> to compare with the current <see cref="T:PListNet.PNode`1"/>.</param>
+    /// <param name="obj">The <see cref="System.Object"/> to compare with the current <see cref="PNode{T}"/>.</param>
     /// <returns><c>true</c> if the specified <see cref="System.Object"/> is equal to the current
-    /// <see cref="T:PListNet.PNode`1"/>; otherwise, <c>false</c>.</returns>
+    /// <see cref="PNode{T}"/>; otherwise, <c>false</c>.</returns>
     public override bool Equals(object obj)
         => obj is PNode node && Equals(node);
 
     /// <summary>
-    /// Serves as a hash function for a <see cref="T:PListNet.PNode`1"/> object.
+    /// Serves as a hash function for a <see cref="PNode{T}"/> object.
     /// </summary>
     /// <returns>A hash code for this instance that is suitable for use in hashing algorithms and data structures such as a hash table.</returns>
     public override int GetHashCode()
         => Value.GetHashCode();
 
     /// <summary>
-    /// Returns a <see cref="System.String"/> that represents the current <see cref="T:PListNet.PNode`1"/>.
+    /// Returns a <see cref="System.String"/> that represents the current <see cref="PNode{T}"/>.
     /// </summary>
-    /// <returns>A <see cref="System.String"/> that represents the current <see cref="T:PListNet.PNode`1"/>.</returns>
+    /// <returns>A <see cref="System.String"/> that represents the current <see cref="PNode{T}"/>.</returns>
     public override string ToString()
         => $"{XmlTag}: {Value}";
 }

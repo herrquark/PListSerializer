@@ -1,20 +1,20 @@
 ﻿using System.Text;
 using System.Xml;
-using PlistNet.Extensions;
-using PListNet.Internal;
+using PlistSerializer.Core.Extensions;
+using PlistSerializer.Core.Internal;
 using XmlTools;
 
-namespace PListNet;
+namespace PlistSerializer.Core;
 
 /// <summary>
-/// Parses, saves, and creates a PList File
+/// Parses, saves, and creates a Plist File
 /// </summary>
-public static class PList
+public static class Plist
 {
     /// <summary>
-    /// Loads the PList from specified stream.
+    /// Loads the Plist from specified stream.
     /// </summary>
-    /// <param name="stream">The stream containing the PList.</param>
+    /// <param name="stream">The stream containing the Plist.</param>
     /// <returns>A <see cref="PNode"/> object loaded from the stream</returns>
     public static PNode Load(Stream stream)
         => IsFormatBinary(stream) // Detect binary format, and read using the appropriate method
@@ -64,23 +64,23 @@ public static class PList
     }
 
     /// <summary>
-    /// Saves the PList to the specified stream.
+    /// Saves the Plist to the specified stream.
     /// </summary>
-    /// <param name="rootNode">Root node of the PList structure.</param>
-    /// <param name="stream">The stream in which the PList is saves.</param>
-    /// <param name="format">The format of the PList (Binary/Xml).</param>
-    public static void Save(PNode rootNode, Stream stream, PListFormat format)
+    /// <param name="rootNode">Root node of the Plist structure.</param>
+    /// <param name="stream">The stream in which the Plist is saves.</param>
+    /// <param name="format">The format of the Plist (Binary/Xml).</param>
+    public static void Save(PNode rootNode, Stream stream, PlistFormat format)
     {
-        if (format == PListFormat.Xml)
+        if (format == PlistFormat.Xml)
             WriteXmlToStream(rootNode, stream);
         else
             WriteBinaryToStream(rootNode, stream);
     }
 
     /// <summary>
-    /// Saves the PList to the specified stream.
+    /// Saves the Plist to the specified stream.
     /// </summary>
-    /// <param name="rootNode">Root node of the PList structure.</param>
+    /// <param name="rootNode">Root node of the Plist structure.</param>
     public static string ToString(PNode rootNode, bool writePlistMeta = true)
     {
         using var xmlStream = new MemoryStream();

@@ -1,8 +1,7 @@
-﻿using PListNet.Nodes;
-using PListNet;
-using PListSerializer.Core.Attributes;
+﻿using PlistSerializer.Core.Attributes;
+using PlistSerializer.Core.Nodes;
 
-namespace PListSerializer.Core.Tests.TestModels;
+namespace PlistSerializer.Core.Tests.TestModels;
 
 
 internal class ResolverTestClass

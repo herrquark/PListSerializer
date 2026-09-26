@@ -1,6 +1,6 @@
-using PListNet.Nodes;
+using PlistSerializer.Core.Nodes;
 
-namespace PListNet.Tests;
+namespace PlistSerializer.Core.Tests;
 
 public class BinaryWriterTests
 {
@@ -8,14 +8,14 @@ public class BinaryWriterTests
     public void Save_BinaryRoundTrip_Test()
     {
         using var stream = TestFileHelper.GetTestFileStream("TestFiles/asdf-Info.plist");
-        var node = PList.Load(stream);
+        var node = Plist.Load(stream);
 
         using var outStream = new MemoryStream();
-        PList.Save(node, outStream, PListFormat.Binary);
+        Plist.Save(node, outStream, PlistFormat.Binary);
 
         // rewind and reload
         outStream.Seek(0, SeekOrigin.Begin);
-        var newNode = PList.Load(outStream);
+        var newNode = Plist.Load(outStream);
 
         // compare
         Assert.Equal(node.GetType().Name, newNode.GetType().Name);

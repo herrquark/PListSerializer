@@ -1,7 +1,7 @@
 using System.Text;
-using PListNet.Nodes;
+using PlistSerializer.Core.Nodes;
 
-namespace PListNet.Tests;
+namespace PlistSerializer.Core.Tests;
 
 public class XmlWriterTests
 {
@@ -10,14 +10,14 @@ public class XmlWriterTests
     {
         using var stream = TestFileHelper.GetTestFileStream("TestFiles/utf8-Info.plist");
 
-        var node = PList.Load(stream);
+        var node = Plist.Load(stream);
 
         using var outStream = new MemoryStream();
-        PList.Save(node, outStream, PListFormat.Xml);
+        Plist.Save(node, outStream, PlistFormat.Xml);
 
         // rewind and reload
         outStream.Seek(0, SeekOrigin.Begin);
-        var newNode = PList.Load(outStream);
+        var newNode = Plist.Load(outStream);
 
         // compare
         Assert.Equal(node.GetType().Name, newNode.GetType().Name);
@@ -48,11 +48,11 @@ public class XmlWriterTests
     public void Save_XmlBoolean_Test()
     {
         using var outStream = new MemoryStream();
-        // create basic PList containing a boolean value
+        // create basic Plist containing a boolean value
         var node = new DictionaryNode { { "Test", new BooleanNode(true) } };
 
         // save and reset stream
-        PList.Save(node, outStream, PListFormat.Xml);
+        Plist.Save(node, outStream, PlistFormat.Xml);
         outStream.Seek(0, SeekOrigin.Begin);
 
         // check that boolean was written out without a space per spec (see also issue #11)
@@ -73,7 +73,7 @@ public class XmlWriterTests
 
         stream.Seek(0, SeekOrigin.Begin);
 
-        var root = PList.Load(stream) as DictionaryNode;
+        var root = Plist.Load(stream) as DictionaryNode;
         Assert.NotNull(root);
 
         // verify that we parsed expected content
@@ -85,7 +85,7 @@ public class XmlWriterTests
         // in the written out boolean node
         using var outStream = new MemoryStream();
         // save and reset stream
-        PList.Save(root, outStream, PListFormat.Xml);
+        Plist.Save(root, outStream, PlistFormat.Xml);
         outStream.Seek(0, SeekOrigin.Begin);
 
         // check that boolean was written out without a space per spec (see also issue #11)
@@ -101,11 +101,11 @@ public class XmlWriterTests
         using var outStream = new MemoryStream();
         var utf16value = "😂test";
 
-        // create basic PList containing a string value
+        // create basic Plist containing a string value
         var node = new DictionaryNode { ["Test"] = new StringNode(utf16value) };
 
         // save and reset stream
-        PList.Save(node, outStream, PListFormat.Xml);
+        Plist.Save(node, outStream, PlistFormat.Xml);
         outStream.Seek(0, SeekOrigin.Begin);
 
         // check that the string was written out inside a string tag
@@ -120,7 +120,7 @@ public class XmlWriterTests
     {
         var node = new BooleanNode(true);
 
-        var str = PList.ToString(node, writePlistMeta: false);
+        var str = Plist.ToString(node, writePlistMeta: false);
 
         Assert.Multiple(() =>
         {
@@ -146,8 +146,8 @@ public class XmlWriterTests
 
         stream.Seek(0, SeekOrigin.Begin);
 
-        var root = PList.Load(stream) as DictionaryNode;
-        var serialized = PList.ToString(root);
+        var root = Plist.Load(stream) as DictionaryNode;
+        var serialized = Plist.ToString(root);
 
         Assert.Equal(source, serialized);
     }

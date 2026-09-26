@@ -1,4 +1,4 @@
-﻿namespace PListNet.Internal;
+﻿namespace PlistSerializer.Core.Internal;
 
 internal class NodeTagAndLength(byte tag, int length)
 {

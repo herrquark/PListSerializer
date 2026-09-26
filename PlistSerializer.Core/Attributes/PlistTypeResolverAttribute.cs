@@ -1,4 +1,4 @@
-﻿namespace PListSerializer.Core.Attributes;
+﻿namespace PlistSerializer.Core.Attributes;
 
 [AttributeUsage(AttributeTargets.Class)]
 public class PlistTypeResolverAttribute(Type resolver) : Attribute

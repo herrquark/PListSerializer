@@ -1,8 +1,8 @@
-﻿using PListNet.Nodes;
+﻿using PlistSerializer.Core.Nodes;
 
-namespace PListSerializer.Core.Tests;
+namespace PlistSerializer.Core.Tests;
 
-public class PListDeserializePrimitiveTypesTests
+public class PlistDeserializePrimitiveTypesTests
 {
     [Theory]
     [InlineData(42)]

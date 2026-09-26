@@ -1,11 +1,10 @@
 using System.Collections;
 using System.ComponentModel;
 using System.Reflection;
-using PListNet;
-using PListNet.Nodes;
-using PListSerializer.Core.Extensions;
+using PlistSerializer.Core.Extensions;
+using PlistSerializer.Core.Nodes;
 
-namespace PListSerializer.Core;
+namespace PlistSerializer.Core;
 
 public class Deserializer
 {

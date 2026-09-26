@@ -1,17 +1,16 @@
-﻿using PListNet;
-using PListNet.Nodes;
-using PListSerializer.Core.Tests.TestModels;
+﻿using PlistSerializer.Core.Nodes;
+using PlistSerializer.Core.Tests.TestModels;
 
-namespace PListSerializer.Core.Tests;
+namespace PlistSerializer.Core.Tests;
 
-public class PListCollectionsDeserializeTests
+public class PlistCollectionsDeserializeTests
 {
     [Fact]
     public void Recursion_Deep_SubclassArray_Test()
     {
         var byteArray = File.ReadAllBytes(Path.Combine("Resources", "PList4.plist"));
         var stream = new MemoryStream(byteArray);
-        var node = PList.Load(stream);
+        var node = Plist.Load(stream);
         var res = Deserializer.Deserialize<ClassWithSameTypes>(node);
         Assert.Multiple(() =>
         {
@@ -41,7 +40,7 @@ public class PListCollectionsDeserializeTests
     {
         var byteArray = File.ReadAllBytes(Path.Combine("Resources", "PList5.plist"));
         var stream = new MemoryStream(byteArray);
-        var node = PList.Load(stream);
+        var node = Plist.Load(stream);
         var root = Deserializer.Deserialize<ClassWithDictionaryAndArraySameType>(node);
         Assert.NotNull(root.DictionaryArrays);
         var array1 = root.DictionaryArrays["Arrays1"];
@@ -92,7 +91,7 @@ public class PListCollectionsDeserializeTests
     {
         var byteArray = File.ReadAllBytes(Path.Combine("Resources", "PList6.plist"));
         var stream = new MemoryStream(byteArray);
-        var node = PList.Load(stream);
+        var node = Plist.Load(stream);
         var res = Deserializer.Deserialize<ClassWithSameTypes>(node);
         Assert.NotNull(res.ArraySameType);
         Assert.Multiple(() =>

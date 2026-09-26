@@ -1,14 +1,14 @@
-using PListNet.Nodes;
-using PListSerializer.Core.Tests.TestModels;
+using PlistSerializer.Core.Nodes;
+using PlistSerializer.Core.Tests.TestModels;
 
-namespace PListSerializer.Core.Tests;
+namespace PlistSerializer.Core.Tests;
 
-public class PListSerializerTests
+public class PlistSerializerTests
 {
     [Fact]
     public void Serialize_PlistName_Test()
     {
-        var source = new RootPList
+        var source = new RootPlist
         {
             GroupIdentifier = "Custom",
             Priority = 3,
@@ -20,7 +20,7 @@ public class PListSerializerTests
         Assert.NotNull(node);
         Assert.Equal(["group_identifier", "Hidden", "priority", "uuid"], node.Keys);
 
-        var res = Deserializer.Deserialize<RootPList>(node);
+        var res = Deserializer.Deserialize<RootPlist>(node);
         Assert.Multiple(() =>
         {
             Assert.Equal(source.GroupIdentifier, res.GroupIdentifier);

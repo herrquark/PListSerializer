@@ -1,4 +1,4 @@
-﻿namespace PListSerializer.Core.Tests.TestModels.Effects;
+﻿namespace PlistSerializer.Core.Tests.TestModels.Effects;
 
 public class Effect
 {

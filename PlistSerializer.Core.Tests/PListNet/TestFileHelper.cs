@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace PListNet.Tests;
+namespace PlistSerializer.Core.Tests;
 
 public static class TestFileHelper
 {

@@ -1,12 +1,12 @@
 ﻿using System.Xml;
-using PlistNet.Extensions;
-using PListNet.Internal;
+using PlistSerializer.Core.Extensions;
+using PlistSerializer.Core.Internal;
 using XmlTools;
 
-namespace PListNet.Nodes;
+namespace PlistSerializer.Core.Nodes;
 
 /// <summary>
-/// Represents an array of an <see cref="T:PListNet.PNode"/> objects
+/// Represents an array of an <see cref="PNode"/> objects
 /// </summary>
 public class ArrayNode : PNode, IList<PNode>
 {
@@ -120,7 +120,7 @@ public class ArrayNode : PNode, IList<PNode>
         => _list.RemoveAt(index);
 
     /// <summary>
-    /// Gets or sets the <see cref="PListNet.PNode"/> at the specified index.
+    /// Gets or sets the <see cref="PNode"/> at the specified index.
     /// </summary>
     /// <param name="index">Index.</param>
     public PNode this[int index]

@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
-using PListSerializer.Core.Attributes;
+using PlistSerializer.Core.Attributes;
 
-namespace PListSerializer.Core.Extensions;
+namespace PlistSerializer.Core.Extensions;
 
 static class PropertyInfoExtensions
 {

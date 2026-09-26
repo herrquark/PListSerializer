@@ -1,9 +1,9 @@
-﻿using PListSerializer.Core.Attributes;
-using PListSerializer.Core.Tests.TestModels.Effects;
+﻿using PlistSerializer.Core.Attributes;
+using PlistSerializer.Core.Tests.TestModels.Effects;
 
-namespace PListSerializer.Core.Tests.TestModels;
+namespace PlistSerializer.Core.Tests.TestModels;
 
-public class RootPList
+public class RootPlist
 {
     [PlistName("group_identifier")]
     public string GroupIdentifier { get; set; }

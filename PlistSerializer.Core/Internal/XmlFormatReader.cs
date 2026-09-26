@@ -1,9 +1,9 @@
 ﻿using System.Xml;
 
-namespace PListNet.Internal;
+namespace PlistSerializer.Core.Internal;
 
 /// <summary>
-/// Reader for XML format PList documents.
+/// Reader for XML format Plist documents.
 /// </summary>
 public static class XmlFormatReader
 {

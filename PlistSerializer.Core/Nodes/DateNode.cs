@@ -1,10 +1,10 @@
 ﻿using System.Globalization;
-using PListNet.Extensions;
+using PlistSerializer.Core.Extensions;
 
-namespace PListNet.Nodes;
+namespace PlistSerializer.Core.Nodes;
 
 /// <summary>
-/// Represents a DateTime Value from a PList
+/// Represents a DateTime Value from a Plist
 /// </summary>
 public sealed class DateNode : PNode<DateTime>
 {
@@ -59,14 +59,14 @@ public sealed class DateNode : PNode<DateTime>
     {
         var buf = new byte[1 << nodeLength];
         if (stream.Read(buf, 0, buf.Length) != buf.Length)
-            throw new PListFormatException();
+            throw new PlistFormatException();
 
         var ticks = nodeLength switch
         {
-            < 2 => throw new PListFormatException("Date < 32Bit"),
+            < 2 => throw new PlistFormatException("Date < 32Bit"),
             2 => (double)buf.ToSingle(),
             3 => buf.ToDouble(),
-            _ => throw new PListFormatException("Date > 64Bit"),
+            _ => throw new PlistFormatException("Date > 64Bit"),
         };
 
         Value = new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(ticks);

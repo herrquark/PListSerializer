@@ -1,12 +1,11 @@
 ﻿using System.Text;
-using PListNet;
-using PListNet.Nodes;
-using PListSerializer.Core.Attributes;
-using PListSerializer.Core.Tests.TestModels;
+using PlistSerializer.Core.Attributes;
+using PlistSerializer.Core.Nodes;
+using PlistSerializer.Core.Tests.TestModels;
 
-namespace PListSerializer.Core.Tests;
+namespace PlistSerializer.Core.Tests;
 
-public class PListDeserializerTests
+public class PlistDeserializerTests
 {
     [Fact]
     public void Deserialize_BigObject_Tests()
@@ -98,8 +97,8 @@ public class PListDeserializerTests
     {
         var byteArray = File.ReadAllBytes(Path.Combine("Resources", "PList2.plist"));
         var stream = new MemoryStream(byteArray);
-        var node = PList.Load(stream);
-        var r = Deserializer.Deserialize<RootPList>(node);
+        var node = Plist.Load(stream);
+        var r = Deserializer.Deserialize<RootPlist>(node);
 
         Assert.NotNull(r);
 
@@ -136,7 +135,7 @@ public class PListDeserializerTests
     {
         var byteArray = File.ReadAllBytes(Path.Combine("Resources", "PList3.plist"));
         var stream = new MemoryStream(byteArray);
-        var node = PList.Load(stream);
+        var node = Plist.Load(stream);
         var r = Deserializer.Deserialize<EffectsPlist>(node);
 
         Assert.NotNull(r.AdjustmentLayers);
@@ -229,7 +228,7 @@ public class PListDeserializerTests
                     """;
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(plist));
-        var rootNode = PList.Load(stream);
+        var rootNode = Plist.Load(stream);
 
         var root = Deserializer.Deserialize<ResolverTestClass>(rootNode);
 

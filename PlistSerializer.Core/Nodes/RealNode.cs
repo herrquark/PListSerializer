@@ -1,10 +1,10 @@
 ﻿using System.Globalization;
-using PListNet.Extensions;
+using PlistSerializer.Core.Extensions;
 
-namespace PListNet.Nodes;
+namespace PlistSerializer.Core.Nodes;
 
 /// <summary>
-/// Represents a double Value from a PList
+/// Represents a double Value from a Plist
 /// </summary>
 public sealed class RealNode : PNode<double>
 {
@@ -60,15 +60,15 @@ public sealed class RealNode : PNode<double>
         var buf = new byte[1 << nodeLength];
 
         if (stream.Read(buf, 0, buf.Length) != buf.Length)
-            throw new PListFormatException();
+            throw new PlistFormatException();
 
         Value = nodeLength switch
         {
-            0 => throw new PListFormatException("Real < 32Bit"),
-            1 => throw new PListFormatException("Real < 32Bit"),
+            0 => throw new PlistFormatException("Real < 32Bit"),
+            1 => throw new PlistFormatException("Real < 32Bit"),
             2 => (double)buf.ToSingle(),
             3 => buf.ToDouble(),
-            _ => throw new PListFormatException("Real > 64Bit"),
+            _ => throw new PlistFormatException("Real > 64Bit"),
         };
     }
 

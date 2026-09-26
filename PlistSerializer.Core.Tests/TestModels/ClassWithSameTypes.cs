@@ -1,4 +1,4 @@
-﻿namespace PListSerializer.Core.Tests.TestModels;
+﻿namespace PlistSerializer.Core.Tests.TestModels;
 
 public class BaseClassWithSameTypes
 {

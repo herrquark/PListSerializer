@@ -1,11 +1,11 @@
 ﻿using System.Buffers.Binary;
-using PListNet.Extensions;
-using PListNet.Nodes;
+using PlistSerializer.Core.Extensions;
+using PlistSerializer.Core.Nodes;
 
-namespace PListNet.Internal;
+namespace PlistSerializer.Core.Internal;
 
 /// <summary>
-/// A class, used to write a <see cref="T:PListNet.PNode"/>  binary formated to a stream
+/// A class, used to write a <see cref="PNode"/>  binary formated to a stream
 /// </summary>
 public class BinaryFormatWriter
 {
@@ -24,10 +24,10 @@ public class BinaryFormatWriter
     }
 
     /// <summary>
-    /// Writers a <see cref="T:PListNet.PNode"/> to the specified stream.
+    /// Writers a <see cref="PNode"/> to the specified stream.
     /// </summary>
     /// <param name="stream">The stream.</param>
-    /// <param name="node">The PList node.</param>
+    /// <param name="node">The Plist node.</param>
     public void Write(Stream stream, PNode node)
     {
         stream.Write(_header, 0, _header.Length);
@@ -79,12 +79,12 @@ public class BinaryFormatWriter
     }
 
     /// <summary>
-    /// Writers a <see cref="T:PListNet.PNode"/> to the current stream position
+    /// Writers a <see cref="PNode"/> to the current stream position
     /// </summary>
     /// <param name="stream">The stream.</param>
     /// <param name="nodeIndexSize">The node index size.</param>
     /// <param name="offsets">Node offsets.</param>
-    /// <param name="node">The PList node.</param>
+    /// <param name="node">The Plist node.</param>
     /// <returns>The Idx of the written node</returns>
     internal int WriteInternal(Stream stream, byte nodeIndexSize, List<int> offsets, PNode node)
     {
@@ -234,7 +234,7 @@ public class BinaryFormatWriter
                 BinaryPrimitives.WriteInt32BigEndian(buf, index);
                 break;
             default:
-                throw new PListFormatException("Invalid node index size");
+                throw new PlistFormatException("Invalid node index size");
         }
 
         return buf;

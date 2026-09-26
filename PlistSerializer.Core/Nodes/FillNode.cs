@@ -1,11 +1,11 @@
 ﻿using System.Xml;
-using PlistNet.Extensions;
+using PlistSerializer.Core.Extensions;
 using XmlTools;
 
-namespace PListNet.Nodes;
+namespace PlistSerializer.Core.Nodes;
 
 /// <summary>
-/// Represents a fill element in a PList
+/// Represents a fill element in a Plist
 /// </summary>
 /// <remarks>Is skipped in Xml-Serialization</remarks>
 public class FillNode : PNode
@@ -23,7 +23,7 @@ public class FillNode : PNode
     internal override byte BinaryTag => 0;
 
     /// <summary>
-    /// Gets the length of this PList node.
+    /// Gets the length of this Plist node.
     /// </summary>
     internal override int BinaryLength => 0x0F;
 
@@ -41,7 +41,7 @@ public class FillNode : PNode
     internal override void ReadBinary(Stream stream, int nodeLength)
     {
         if (nodeLength != 0x0F)
-            throw new PListFormatException();
+            throw new PlistFormatException();
     }
 
     /// <summary>

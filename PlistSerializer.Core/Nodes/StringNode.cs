@@ -1,12 +1,12 @@
 ﻿using System.Text;
 using System.Xml;
-using PlistNet.Extensions;
+using PlistSerializer.Core.Extensions;
 using XmlTools;
 
-namespace PListNet.Nodes;
+namespace PlistSerializer.Core.Nodes;
 
 /// <summary>
-/// Represents an string Value from a PList
+/// Represents an string Value from a Plist
 /// </summary>
 public class StringNode : PNode<string>
 {
@@ -29,9 +29,9 @@ public class StringNode : PNode<string>
     internal override byte BinaryTag => (byte) (IsUtf16 ? 6 : 5);
 
     /// <summary>
-    /// Gets the length of this PList element.
+    /// Gets the length of this Plist element.
     /// </summary>
-    /// <returns>The length of this PList element.</returns>
+    /// <returns>The length of this Plist element.</returns>
     internal override int BinaryLength => Value.Length;
 
     /// <summary>
@@ -113,7 +113,7 @@ public class StringNode : PNode<string>
         var buf = new byte[nodeLength * (BinaryTag == 5 ? 1 : 2)];
 
         if (stream.Read(buf, 0, buf.Length) != buf.Length)
-            throw new PListFormatException();
+            throw new PlistFormatException();
 
         var encoding = BinaryTag == 5 ? Encoding.UTF8 : Encoding.BigEndianUnicode;
 

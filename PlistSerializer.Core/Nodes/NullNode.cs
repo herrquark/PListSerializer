@@ -1,11 +1,11 @@
 ﻿using System.Xml;
-using PlistNet.Extensions;
+using PlistSerializer.Core.Extensions;
 using XmlTools;
 
-namespace PListNet.Nodes;
+namespace PlistSerializer.Core.Nodes;
 
 /// <summary>
-/// Represents a null element in a PList
+/// Represents a null element in a Plist
 /// </summary>
 /// <remarks>Is skipped in Xml-Serialization</remarks>
 public class NullNode : PNode
@@ -38,7 +38,7 @@ public class NullNode : PNode
     internal override void ReadBinary(Stream stream, int nodeLength)
     {
         if (nodeLength != 0x00)
-            throw new PListFormatException();
+            throw new PlistFormatException();
     }
 
     /// <summary>

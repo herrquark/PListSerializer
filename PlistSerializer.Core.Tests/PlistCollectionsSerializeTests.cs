@@ -1,11 +1,10 @@
 ﻿using System.Diagnostics;
-using PListNet;
-using PListNet.Nodes;
-using PListSerializer.Core.Tests.TestModels;
+using PlistSerializer.Core.Nodes;
+using PlistSerializer.Core.Tests.TestModels;
 
-namespace PListSerializer.Core.Tests;
+namespace PlistSerializer.Core.Tests;
 
-public class PListCollectionsSerializeTests
+public class PlistCollectionsSerializeTests
 {
     [Fact]
     public void Recursion_Deep_SubclassArray_Test()
@@ -150,6 +149,6 @@ public class PListCollectionsSerializeTests
         Assert.NotNull(res);
         Assert.Equal(3, res.Count);
 
-        Console.WriteLine(PList.ToString(res, writePlistMeta: false));
+        Console.WriteLine(Plist.ToString(res, writePlistMeta: false));
     }
 }

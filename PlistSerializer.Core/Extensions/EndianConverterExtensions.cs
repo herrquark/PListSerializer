@@ -1,6 +1,6 @@
 using System.Buffers.Binary;
 
-namespace PListNet.Extensions;
+namespace PlistSerializer.Core.Extensions;
 
 internal static class EndianConverterExtensions
 {

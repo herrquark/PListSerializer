@@ -1,6 +1,4 @@
-using PListNet;
-
-namespace PListSerializer.Core;
+namespace PlistSerializer.Core;
 
 public interface IPlistTypeResolver
 {

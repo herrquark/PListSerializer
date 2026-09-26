@@ -1,11 +1,11 @@
 ﻿using System.Xml;
-using PlistNet.Extensions;
+using PlistSerializer.Core.Extensions;
 using XmlTools;
 
-namespace PListNet.Nodes;
+namespace PlistSerializer.Core.Nodes;
 
 /// <summary>
-/// Represents a Boolean Value from a PList
+/// Represents a Boolean Value from a Plist
 /// </summary>
 public sealed class BooleanNode : PNode<bool>
 {
@@ -93,7 +93,7 @@ public sealed class BooleanNode : PNode<bool>
     internal override void ReadBinary(Stream stream, int nodeLength)
     {
         if (nodeLength != 8 && nodeLength != 9)
-            throw new PListFormatException();
+            throw new PlistFormatException();
 
         Value = nodeLength == 9;
     }

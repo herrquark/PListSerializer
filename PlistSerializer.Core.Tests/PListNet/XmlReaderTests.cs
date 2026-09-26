@@ -1,6 +1,6 @@
-using PListNet.Nodes;
+using PlistSerializer.Core.Nodes;
 
-namespace PListNet.Tests;
+namespace PlistSerializer.Core.Tests;
 
 public class XmlReaderTests
 {
@@ -8,7 +8,7 @@ public class XmlReaderTests
     public void Load_XmlDictionary_Test()
     {
         using var stream = TestFileHelper.GetTestFileStream("TestFiles/asdf-Info.plist");
-        var node = PList.Load(stream);
+        var node = Plist.Load(stream);
 
         Assert.NotNull(node);
 
@@ -22,7 +22,7 @@ public class XmlReaderTests
     public void Load_XmlNestedCollections_Test()
     {
         using var stream = TestFileHelper.GetTestFileStream("TestFiles/dict-inside-array.plist");
-        var node = PList.Load(stream);
+        var node = Plist.Load(stream);
 
         Assert.NotNull(node);
         Assert.IsType<DictionaryNode>(node);
@@ -41,7 +41,7 @@ public class XmlReaderTests
     public void Load_XmlNestedCollectionsWithComplexText_Test()
     {
         using var stream = TestFileHelper.GetTestFileStream("TestFiles/Pods-acknowledgements.plist");
-        var root = PList.Load(stream) as DictionaryNode;
+        var root = Plist.Load(stream) as DictionaryNode;
 
         Assert.NotNull(root);
         Assert.Equal(3, root.Count);
@@ -69,7 +69,7 @@ public class XmlReaderTests
     public void Load_XmlEmptyArray_Test()
     {
         using var stream = TestFileHelper.GetTestFileStream("TestFiles/empty-array.plist");
-        var root = PList.Load(stream) as DictionaryNode;
+        var root = Plist.Load(stream) as DictionaryNode;
 
         Assert.NotNull(root);
         Assert.Single(root);
@@ -86,6 +86,6 @@ public class XmlReaderTests
     public void Load_XmlUid_Test()
     {
         using var stream = TestFileHelper.GetTestFileStream("TestFiles/github-7-xml.plist");
-        Assert.NotNull(PList.Load(stream));
+        Assert.NotNull(Plist.Load(stream));
     }
 }

@@ -1,9 +1,9 @@
-﻿using PListNet.Extensions;
+﻿using PlistSerializer.Core.Extensions;
 
-namespace PListNet.Nodes;
+namespace PlistSerializer.Core.Nodes;
 
 /// <summary>
-/// Represents a UID value from a PList
+/// Represents a UID value from a Plist
 /// </summary>
 public class UidNode : PNode<ulong>
 {
@@ -46,7 +46,7 @@ public class UidNode : PNode<ulong>
         var buf = new byte[1 << nodeLength];
 
         if (stream.Read(buf, 0, buf.Length) != buf.Length)
-            throw new PListFormatException();
+            throw new PlistFormatException();
 
         Value = nodeLength switch
         {
@@ -54,7 +54,7 @@ public class UidNode : PNode<ulong>
             1 => buf.ToUInt16(),
             2 => buf.ToUInt32(),
             3 => buf.ToUInt64(),
-            _ => throw new PListFormatException("Int > 64Bit"),
+            _ => throw new PlistFormatException("Int > 64Bit"),
         };
     }
 

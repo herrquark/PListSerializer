@@ -1,10 +1,10 @@
 ﻿using System.Globalization;
-using PListNet.Extensions;
+using PlistSerializer.Core.Extensions;
 
-namespace PListNet.Nodes;
+namespace PlistSerializer.Core.Nodes;
 
 /// <summary>
-/// Represents an integer Value from a PList
+/// Represents an integer Value from a Plist
 /// </summary>
 public class IntegerNode : PNode<long>
 {
@@ -21,9 +21,9 @@ public class IntegerNode : PNode<long>
     internal override byte BinaryTag => 1;
 
     /// <summary>
-    /// Gets the length of this PList element.
+    /// Gets the length of this Plist element.
     /// </summary>
-    /// <returns>The length of this PList element.</returns>
+    /// <returns>The length of this Plist element.</returns>
     /// <remarks>Provided for internal use only.</remarks>
     internal override int BinaryLength
     => Value switch
@@ -80,7 +80,7 @@ public class IntegerNode : PNode<long>
         var buf = new byte[1 << nodeLength];
 
         if (stream.Read(buf, 0, buf.Length) != buf.Length)
-            throw new PListFormatException();
+            throw new PlistFormatException();
 
         Value = nodeLength switch
         {
@@ -88,7 +88,7 @@ public class IntegerNode : PNode<long>
             1 => buf.ToInt16(),
             2 => buf.ToInt32(),
             3 => buf.ToInt64(),
-            _ => throw new PListFormatException("Int > 64Bit"),
+            _ => throw new PlistFormatException("Int > 64Bit"),
         };
     }
 

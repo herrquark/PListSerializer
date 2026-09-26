@@ -1,9 +1,8 @@
-﻿using PListNet;
-using PListNet.Nodes;
+﻿using PlistSerializer.Core.Nodes;
 
-namespace PListSerializer.Core.Tests;
+namespace PlistSerializer.Core.Tests;
 
-public class PListSerializePrimitiveTypesTests
+public class PlistSerializePrimitiveTypesTests
 {
     [Theory]
     [InlineData(42)]
@@ -91,7 +90,7 @@ public class PListSerializePrimitiveTypesTests
         Assert.Multiple(() =>
         {
             Assert.Equal(source.ToString(), enumNode.Value);
-            Assert.Equal("<string>Value2</string>\n", PList.ToString(enumNode, writePlistMeta: false));
+            Assert.Equal("<string>Value2</string>\n", Plist.ToString(enumNode, writePlistMeta: false));
         });
 
     }
@@ -109,7 +108,7 @@ public class PListSerializePrimitiveTypesTests
 
     //     Assert.That(enumNode.Value, Is.EqualTo(source.ToString()));
 
-    //     Assert.That(PList.ToString(enumNode, writePlistMeta: false), Is.EqualTo("<string>Value2</string>\n"));
+    //     Assert.That(Plist.ToString(enumNode, writePlistMeta: false), Is.EqualTo("<string>Value2</string>\n"));
 
     //     var source2 = new TestClass
     //     {

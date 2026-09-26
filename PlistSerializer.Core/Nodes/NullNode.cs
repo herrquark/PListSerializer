@@ -55,16 +55,6 @@ public class NullNode : PNode
     internal override void ReadXml(XmlReader reader)
         => reader.ReadStartElement(XmlTag);
 
-    /// <summary>
-    /// Converts an object into its XML representation.
-    /// </summary>
-    /// <param name="writer">The <see cref="T:XmlWriter"/> stream to which the object is serialized.</param>
-    internal override void WriteXml(XmlWriter writer)
-    {
-        writer.WriteStartElement(XmlTag);
-        writer.WriteEndElement();
-    }
-
     internal override void WriteXml(LightXmlWriter writer, int indent = 0)
         => writer.WriteSelfClosingLineWithIndent(XmlTag, indent);
 }

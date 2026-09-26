@@ -16,7 +16,6 @@ public class Deserializer
         {
             _ when type.IsDictionary() => DeserializeDictionary(type, node),
 
-            //_ when node is DataNode dataNode => dataNode.Value, // just return bytes
             _ when type.IsArray => DeserializeArray(type, node),
 
             _ when type.IsList() => DeserializeList(type, node),
@@ -141,13 +140,6 @@ public class Deserializer
 
         return instance;
     }
-
-    // private static object DeserializePrimitive(Type type, PNode node)
-    //     => node switch
-    //     {
-
-    //         _ => default
-    //     };
 
     private static object ConvertToType(object value, Type type)
     {

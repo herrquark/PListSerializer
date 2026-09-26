@@ -82,26 +82,6 @@ public class DictionaryNode : PNode, IDictionary<string, PNode>
         reader.ReadEndElement();
     }
 
-    /// <summary>
-    /// Converts an object into its XML representation.
-    /// </summary>
-    /// <param name="writer">The <see cref="T:System.Xml.XmlWriter"/> stream to which the object is serialized.</param>
-    internal override void WriteXml(XmlWriter writer)
-    {
-        writer.WriteStartElement(XmlTag);
-
-        foreach (var key in Keys)
-        {
-            writer.WriteStartElement("key");
-            writer.WriteValue(key);
-            writer.WriteEndElement();
-
-            this[key].WriteXml(writer);
-        }
-
-        writer.WriteEndElement();
-    }
-
     internal override void WriteXml(LightXmlWriter writer, int indent = 0)
     {
         if (Keys.Count == 0)

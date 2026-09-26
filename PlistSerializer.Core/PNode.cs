@@ -30,7 +30,6 @@ public abstract class PNode
 
     internal abstract void ReadXml(XmlReader reader);
 
-    internal abstract void WriteXml(XmlWriter writer);
     internal abstract void WriteXml(LightXmlWriter writer, int indent = 0);
 
     internal abstract void ReadBinary(Stream stream, int nodeLength);
@@ -60,17 +59,6 @@ public abstract class PNode<T> : PNode, IEquatable<PNode>
         reader.ReadStartElement();
         Parse(reader.ReadContentAsString());
         reader.ReadEndElement();
-    }
-
-    /// <summary>
-    /// Converts an object into its XML representation.
-    /// </summary>
-    /// <param name="writer">The <see cref="T:System.Xml.XmlWriter"/> stream to which the object is serialized.</param>
-    internal override void WriteXml(XmlWriter writer)
-    {
-        writer.WriteStartElement(XmlTag);
-        writer.WriteValue(ToXmlString());
-        writer.WriteEndElement();
     }
 
     internal override void WriteXml(LightXmlWriter writer, int indent = 0)

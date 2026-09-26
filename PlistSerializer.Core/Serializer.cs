@@ -25,7 +25,6 @@ public class Serializer
             Guid g => new StringNode(g.ToString()),
             _ when obj.GetType().IsPrimitive => new StringNode(obj.ToString()),
             byte[] bytes => new DataNode(bytes),
-            // IList list => SerializeList(list),
             IDictionary dict => SerializeDictionary(dict),
             IEnumerable<KeyValuePair<string, object>> dict => SerializeDictionary(dict),
             IEnumerable enumerable => SerializeEnumerable(enumerable),
@@ -120,9 +119,7 @@ public class Serializer
         {
             Name = p.GetName(),
             Get = p.GetValue,
-            DefaultValue = p.GetCustomAttributes(typeof(DefaultValueAttribute), true).FirstOrDefault() is DefaultValueAttribute defaultAttribute
-                    ? defaultAttribute.Value
-                    : GetDefaultValueForType(p.PropertyType)
+            DefaultValue = p.GetCustomAttribute<DefaultValueAttribute>(false)?.Value
         };
 
     private static GetterMember BuildGetterMember(FieldInfo f)
@@ -130,12 +127,6 @@ public class Serializer
         {
             Name = f.GetName(),
             Get = f.GetValue,
-            DefaultValue = f.GetCustomAttributes(typeof(DefaultValueAttribute), true).FirstOrDefault() is DefaultValueAttribute defaultAttribute
-                ? defaultAttribute.Value
-                : GetDefaultValueForType(f.FieldType)
+            DefaultValue = f.GetCustomAttribute<DefaultValueAttribute>(false)?.Value
         };
-
-    private static object GetDefaultValueForType(Type type)
-        // => type.IsValueType ? Activator.CreateInstance(type) : null;
-        => null;
 }

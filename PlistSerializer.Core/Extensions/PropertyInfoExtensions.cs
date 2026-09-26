@@ -18,20 +18,4 @@ static class PropertyInfoExtensions
     // get-only properties and indexers have no plist key to read or write
     public static bool IsPlistMember(this PropertyInfo propertyInfo)
         => propertyInfo.CanWrite && propertyInfo.GetIndexParameters().Length == 0;
-
-    public static bool IsDictionary(this PropertyInfo property)
-        => property.PropertyType.IsDictionary();
-
-    public static HashSet<Type> GetGenericSubTypes(this PropertyInfo propertyInfo)
-    {
-        var result = new HashSet<Type>();
-        var propertyType = propertyInfo.PropertyType;
-
-        if (propertyType.IsArray)
-            result.Add(propertyType.GetElementType());
-        else if (propertyType.IsDictionary() || propertyType.IsList() || propertyType.IsHashSet())
-            result = [.. propertyType.GenericTypeArguments];
-
-        return result;
-    }
 }

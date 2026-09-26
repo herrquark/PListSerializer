@@ -51,17 +51,6 @@ public class FillNode : PNode
     {
     }
 
-    #region IXmlSerializable Members
-
-    /// <summary>
-    /// This method is reserved and should not be used. When implementing the IXmlSerializable interface, you should return null (Nothing in Visual Basic) from this method, and instead, if specifying a custom schema is required, apply the <see cref="T:System.Xml.Serialization.XmlSchemaProviderAttribute"/> to the class.
-    /// </summary>
-    /// <returns>
-    /// An <see cref="T:System.Xml.Schema.XmlSchema"/> that describes the XML representation of the object that is produced by the <see cref="M:System.Xml.Serialization.IXmlSerializable.WriteXml(System.Xml.XmlWriter)"/> method and consumed by the <see cref="M:System.Xml.Serialization.IXmlSerializable.ReadXml(System.Xml.XmlReader)"/> method.
-    /// </returns>
-    public System.Xml.Schema.XmlSchema GetSchema()
-        => null;
-
     /// <summary>
     /// Generates an object from its XML representation.
     /// </summary>
@@ -69,18 +58,6 @@ public class FillNode : PNode
     internal override void ReadXml(XmlReader reader)
         => reader.ReadStartElement(XmlTag);
 
-    /// <summary>
-    /// Converts an object into its XML representation.
-    /// </summary>
-    /// <param name="writer">The <see cref="T:System.Xml.XmlWriter"/> stream to which the object is serialized.</param>
-    internal override void WriteXml(XmlWriter writer)
-    {
-        writer.WriteStartElement(XmlTag);
-        writer.WriteEndElement();
-    }
-
     internal override void WriteXml(LightXmlWriter writer, int indent = 0)
         => writer.WriteSelfClosingLineWithIndent(XmlTag, indent);
-
-    #endregion
 }

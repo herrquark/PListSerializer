@@ -86,13 +86,6 @@ public class StringNode : PNode<string>
     internal override void Parse(string data)
         => Value = data;
 
-    internal override void WriteXml(XmlWriter writer)
-    {
-        writer.WriteStartElement(XmlTag);
-        writer.WriteValue(ToXmlString());
-        writer.WriteEndElement();
-    }
-
     internal override void WriteXml(LightXmlWriter writer, int indent = 0)
         => writer.WriteElementLineWithValue(XmlTag, ToXmlString(), indent);
 

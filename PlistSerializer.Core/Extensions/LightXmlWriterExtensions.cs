@@ -43,9 +43,6 @@ public static class LightXmlWriterExtensions
         writer.WriteRaw("\n");
     }
 
-    public static void WriteNewLine(this LightXmlWriter writer)
-        => writer.WriteRaw("\n");
-
     public static void WritePlistHeader(this LightXmlWriter writer)
         => writer.WriteRaw("""
             <?xml version="1.0" encoding="UTF-8"?>

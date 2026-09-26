@@ -50,9 +50,6 @@ internal static class EndianConverterExtensions
     public static byte[] GetBytes(this ulong value)
         => ((long)value).GetBytes();
 
-    public static byte[] GetBytes(this float value)
-        => BitConverter.SingleToInt32Bits(value).GetBytes();
-
     public static byte[] GetBytes(this double value)
         => BitConverter.DoubleToInt64Bits(value).GetBytes();
 }

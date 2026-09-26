@@ -2,7 +2,7 @@ using XmlTools;
 
 namespace PlistSerializer.Core.Extensions;
 
-public static class LightXmlWriterExtensions
+internal static class LightXmlWriterExtensions
 {
     public static void WriteStartElementWithIndent(this LightXmlWriter writer, string name, int indent, bool newLine = false)
     {

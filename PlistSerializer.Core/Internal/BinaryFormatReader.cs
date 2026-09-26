@@ -249,7 +249,7 @@ internal class BinaryFormatReader
             _ => throw new PlistFormatException("$Unexpected index size: {readerState.IndexSize}."),
         };
 
-    public class ReaderState(Stream stream, int[] nodeOffsets, int indexSize, int objectRefSize)
+    private sealed class ReaderState(Stream stream, int[] nodeOffsets, int indexSize, int objectRefSize)
     {
         public Stream Stream { get; } = stream;
         public int[] NodeOffsets { get; } = nodeOffsets;

@@ -7,7 +7,7 @@ namespace PlistSerializer.Core.Internal;
 /// <summary>
 /// A class, used to write a <see cref="PNode"/>  binary formated to a stream
 /// </summary>
-public class BinaryFormatWriter
+internal class BinaryFormatWriter
 {
     /// <summary>
     /// The Header (bplist00)

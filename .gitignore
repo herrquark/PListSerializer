@@ -31,3 +31,5 @@ _ReSharper*/
 .vscode/
 #Nuget packages folder
 packages/
+.idea/
+*.userprefs

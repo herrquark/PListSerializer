@@ -1,6 +1,9 @@
 # AGENTS.md
 
-PListSerializer maps .NET objects to and from the `PNode` tree of PListNet by reflection, and ships on NuGet as `PListSerializer.Quark`. Its public surface is `Serializer.Serialize(object) → PNode`, `Deserializer.Deserialize<T>(PNode)`, the `[PlistName]` and `[PlistTypeResolver]` attributes, and `IPlistTypeResolver`. PListNet handles reading and writing plist bytes (`PList.Load`, `PList.ToString`, `PList.Save`).
+PListSerializer reads and writes Apple plist files and maps them to .NET objects, and ships as the NuGet package `PListSerializer.Quark`. One assembly holds two layers:
+
+- PListNet, in `PListSerializer.Core/PListNet/`, reads and writes plist bytes in XML and binary format as a `PNode` tree (`PList.Load`, `PList.Save`, `PList.ToString`). It was merged in from the maintainer's PList-Net fork and keeps its `PListNet` and `PListNet.Nodes` namespaces, which consumers import directly, so files there use those namespaces rather than the folder-derived one.
+- The serializer maps objects to and from that tree by reflection. Its public surface is `Serializer.Serialize(object) → PNode`, `Deserializer.Deserialize<T>(PNode)`, the `[PlistName]` and `[PlistTypeResolver]` attributes, and `IPlistTypeResolver`, all under `PListSerializer.Core`.
 
 ## Build and test
 
@@ -37,11 +40,11 @@ Both entry points are static and cache reflection results in static `ConcurrentD
 
 - `PListSerializer.Core` targets `netstandard2.1` with `LangVersion latest`. Current C# syntax compiles, but BCL APIs newer than netstandard2.1 are unavailable, as are features that need runtime polyfills (`init`, `required`). The test project targets `net10.0`.
 - Nullable reference types are disabled in both projects, so reference types are declared without `?`.
-- Both projects reference `PListNet.Quark` (the maintainer's PListNet fork). Upgrade both to the same version together.
-- The package version is `<Version>` in `PListSerializer.Core/PListSerializer.Core.csproj`. Version bumps go in their own `bump version` commit after the change.
+- The package version is `<Version>` in `PListSerializer.Core/PListSerializer.Core.csproj`. Version bumps go in their own `bump version` commit after the change. `CHANGELOG.md` is packed as the package's release notes, so each new version gets an entry at the top of its `PListSerializer.Quark` section.
 
 ## Tests
 
 - The suite uses xUnit v3 on Microsoft Testing Platform, with `Xunit` as a global using. Tests are named `<Operation>_<Subject>_Test` and group related asserts in `Assert.Multiple`.
 - Models live in `TestModels/` under the namespace `PListSerializer.Core.Tests.TestModels`.
 - Small plists go inline as a raw string literal loaded with `PList.Load(new MemoryStream(Encoding.UTF8.GetBytes(xml)))`, as `Deserialize_WithResolver_Test` does. A fixture file in `Resources/` needs its own `<None Update="Resources\Name.plist" CopyToOutputDirectory="PreserveNewest" />` entry in the test csproj, and the test must spell the file name with its exact casing, because Linux file systems are case-sensitive.
+- PListNet's format tests live in `PListNet/` under the namespace `PListNet.Tests`. Their fixtures in `PListNet/TestFiles/` are embedded by a glob in the test csproj and opened with `TestFileHelper.GetTestFileStream("TestFiles/name.plist")`. `ToString_SourceXml_Test` compares written XML with the fixture byte for byte, so fixtures keep their committed whitespace and line endings, which `.gitattributes` shields from git's conversion.

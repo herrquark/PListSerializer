@@ -1,4 +1,12 @@
-﻿### 3.4.4
+﻿## PListSerializer.Quark
+
+### 2.0.0
+ - PListNet is merged into the package: `PList`, `PNode` and the `PListNet.Nodes` types now ship in `PListSerializer.Core.dll` under their original namespaces
+ - the `PListNet.Quark` dependency is gone; remove any direct `PListNet.Quark` reference when upgrading, or the `PListNet` types are defined twice
+
+## PListNet.Quark (merged into PListSerializer.Quark 2.0.0)
+
+### 3.4.4
  - use fast and simple [`LightXmlWriter`](https://github.com/lechu445/LightXmlWriter) for XML serialization
  - make sure that serialized XML is as close as possible to what Xcode generates
 

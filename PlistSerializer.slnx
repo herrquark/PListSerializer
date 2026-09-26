@@ -1,4 +1,4 @@
 <Solution>
-  <Project Path="PlistSerializer.Core.Tests/PlistSerializer.Core.Tests.csproj" />
-  <Project Path="PlistSerializer.Core/PlistSerializer.Core.csproj" />
+  <Project Path="PlistSerializer.Tests/PlistSerializer.Tests.csproj" />
+  <Project Path="PlistSerializer/PlistSerializer.csproj" />
 </Solution>

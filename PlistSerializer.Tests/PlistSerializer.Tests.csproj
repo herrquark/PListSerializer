@@ -11,7 +11,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\PlistSerializer.Core\PlistSerializer.Core.csproj" />
+        <ProjectReference Include="..\PlistSerializer\PlistSerializer.csproj" />
     </ItemGroup>
 
     <ItemGroup>

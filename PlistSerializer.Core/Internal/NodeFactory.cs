@@ -1,18 +1,13 @@
-﻿using PlistSerializer.Core.Nodes;
+using PlistSerializer.Core.Nodes;
 
 namespace PlistSerializer.Core.Internal;
 
-/// <summary>
-/// Singleton class which generates concrete <see cref="PNode"/> from the Tag or TypeCode
-/// </summary>
+// creates concrete nodes from an XML tag or a binary type code
 internal static class NodeFactory
 {
-    private static readonly Dictionary<string, Type> _xmlTags = [];
-    private static readonly Dictionary<byte, Type> _binaryTags = [];
+    private static readonly Dictionary<string, Type> XmlTags = [];
+    private static readonly Dictionary<byte, Type> BinaryTags = [];
 
-    /// <summary>
-    /// Initializes the <see cref="NodeFactory"/> class.
-    /// </summary>
     static NodeFactory()
     {
         Register(new DictionaryNode());
@@ -31,78 +26,44 @@ internal static class NodeFactory
         Register("false", 0, new BooleanNode());
     }
 
-    /// <summary>
-    /// Registers the specified element.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="node">The node.</param>
-    private static void Register<T>(T node) where T : PNode, new()
-    {
-        if (!_xmlTags.ContainsKey(node.XmlTag))
-            _xmlTags.Add(node.XmlTag, node.GetType());
-
-        if (!_binaryTags.ContainsKey(node.BinaryTag))
-            _binaryTags.Add(node.BinaryTag, node.GetType());
-    }
-
-    /// <summary>
-    /// Registers the specified element.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="xmlTag">The tag.</param>
-    /// <param name="binaryTag">The type code.</param>
-    /// <param name="node">The element.</param>
-    private static void Register<T>(string xmlTag, byte binaryTag, T node) where T : PNode, new()
-    {
-        if (!_xmlTags.ContainsKey(xmlTag))
-            _xmlTags.Add(xmlTag, node.GetType());
-
-        if (!_binaryTags.ContainsKey(binaryTag))
-            _binaryTags.Add(binaryTag, node.GetType());
-    }
-
-    /// <summary>
-    /// Creates a concrete <see cref="PNode"/> object secified specified by it's typecode.
-    /// </summary>
-    /// <param name="binaryTag">The typecode of the element.</param>
-    /// <param name="length">The length of the element
-    /// (required only for <see cref="BooleanNode"/>, <see cref="NullNode"/>
-    /// and <see cref="FillNode"/>).</param>
-    /// <returns>The created <see cref="PNode"/> object</returns>
+    // the length tells apart the nodes that share binary tag 0: BooleanNode, NullNode and FillNode
     public static PNode Create(byte binaryTag, int length)
         => binaryTag switch
         {
             0 when length == 0x00 => new NullNode(),
             0 when length == 0x0F => new FillNode(),
             6 => new StringNode { IsUtf16 = true },
-            _ when _binaryTags.ContainsKey(binaryTag) => (PNode)Activator.CreateInstance(_binaryTags[binaryTag]),
+            _ when BinaryTags.ContainsKey(binaryTag) => (PNode)Activator.CreateInstance(BinaryTags[binaryTag]),
             _ => throw new PlistFormatException($"Unknown node - binary tag {binaryTag}")
         };
 
-
-    /// <summary>
-    /// Creates a concrete <see cref="PNode"/> object secified specified by it's tag.
-    /// </summary>
-    /// <param name="tag">The tag of the element.</param>
-    /// <returns>The created <see cref="PNode"/> object</returns>
     public static PNode Create(string tag)
-        => _xmlTags.ContainsKey(tag)
-            ? (PNode)Activator.CreateInstance(_xmlTags[tag])
+        => XmlTags.ContainsKey(tag)
+            ? (PNode)Activator.CreateInstance(XmlTags[tag])
             : throw new PlistFormatException($"Unknown node - XML tag \"{tag}\"");
 
-    /// <summary>
-    /// Creates a <see cref="PNode"/> object used for exteded length information.
-    /// </summary>
-    /// <param name="length">The exteded length information.</param>
-    /// <returns>The <see cref="PNode"/> object used for exteded length information.</returns>
+    // holds the extended length of a binary node
     public static PNode CreateLengthElement(int length)
         => new IntegerNode(length);
 
-    /// <summary>
-    /// Creates a <see cref="PNode"/> object used for dictionary keys.
-    /// </summary>
-    /// <param name="key">The key.</param>
-    /// <returns>The <see cref="PNode"/> object used for dictionary keys.</returns>
     public static PNode CreateKeyElement(string key)
         => new StringNode(key);
+
+    private static void Register<T>(T node) where T : PNode, new()
+    {
+        if (!XmlTags.ContainsKey(node.XmlTag))
+            XmlTags.Add(node.XmlTag, node.GetType());
+
+        if (!BinaryTags.ContainsKey(node.BinaryTag))
+            BinaryTags.Add(node.BinaryTag, node.GetType());
+    }
+
+    private static void Register<T>(string xmlTag, byte binaryTag, T node) where T : PNode, new()
+    {
+        if (!XmlTags.ContainsKey(xmlTag))
+            XmlTags.Add(xmlTag, node.GetType());
+
+        if (!BinaryTags.ContainsKey(binaryTag))
+            BinaryTags.Add(binaryTag, node.GetType());
+    }
 }

@@ -92,54 +92,7 @@ public class PlistSerializePrimitiveTypesTests
             Assert.Equal(source.ToString(), enumNode.Value);
             Assert.Equal("<string>Value2</string>\n", Plist.ToString(enumNode, writePlistMeta: false));
         });
-
     }
-
-    // [TestCase]
-    // public void Serialize_Enum_Test()
-    // {
-    //     var source = TestEnum.Value2;
-
-    //     var node = Serializer.Serialize(source);
-    //     Assert.That(node, Is.Not.Null);
-
-    //     var enumNode = node as StringNode;
-    //     Assert.That(enumNode, Is.Not.Null);
-
-    //     Assert.That(enumNode.Value, Is.EqualTo(source.ToString()));
-
-    //     Assert.That(Plist.ToString(enumNode, writePlistMeta: false), Is.EqualTo("<string>Value2</string>\n"));
-
-    //     var source2 = new TestClass
-    //     {
-    //         Enum = source,
-    //         Enum2 = TestEnum.Value3,
-    //         Dict = new Dictionary<string, object>
-    //         {
-    //             { "e", source },
-    //             { "i", 123123 },
-    //             { "d", 1.23232e+42 },
-    //             { "o", new TestClass.SubClass()
-    //             {
-    //                 e = TestEnum.Value5,
-    //                 i = 123123,
-    //                 d = 1.23232e+42
-    //             } }
-    //         },
-    //         Sub = new()
-    //         {
-    //             e = TestEnum.Value2,
-    //             i = 123123,
-    //             d = 1.23232e+42,
-    //             Sub = new()
-    //             {
-    //                 e = TestEnum.Value4,
-    //                 i = 123123,
-    //                 d = 1.23232e+42
-    //             }
-    //         }
-    //     };
-    // }
 
     public enum TestEnum
     {
@@ -149,22 +102,4 @@ public class PlistSerializePrimitiveTypesTests
         Value4,
         Value5
     }
-
-    // public class TestClass
-    // {
-    //     public TestEnum Enum { get; set; }
-    //     public TestEnum Enum2 { get; set; }
-    //     public decimal Dec { get; set; } = 3.234m;
-    //     public Dictionary<string, object> Dict { get; set; }
-    //     public SubClass Sub { get; set; } = default!;
-
-    //     public class SubClass
-    //     {
-    //         public TestEnum e { get; set; }
-    //         public int i { get; set; }
-    //         public double d { get; set; }
-
-    //         public SubClass Sub { get; set; } = default!;
-    //     }
-    // }
 }

@@ -1,17 +1,17 @@
-﻿namespace PlistSerializer.Core;
+namespace PlistSerializer.Core;
 
 /// <summary>
-/// The Format of a Plist File
+/// The format of a plist file.
 /// </summary>
 public enum PlistFormat
 {
     /// <summary>
-    /// Binary version of Plist format.
+    /// The binary format, which starts with <c>bplist00</c>.
     /// </summary>
     Binary,
 
     /// <summary>
-    /// XML version of Plist format.
+    /// The XML format.
     /// </summary>
     Xml
 }

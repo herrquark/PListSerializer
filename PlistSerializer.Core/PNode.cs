@@ -1,31 +1,20 @@
-﻿using System.Xml;
+using System.Xml;
 using XmlTools;
 
 namespace PlistSerializer.Core;
 
 /// <summary>
-/// Plist document node.
+/// A node of a plist tree.
 /// </summary>
 public abstract class PNode
 {
-    /// <summary>
-    /// 	Gets the xml tag.
-    /// </summary>
-    /// <value>The xml tag.</value>
     internal abstract string XmlTag { get; }
 
-    /// <summary>
-    /// 	Gets the binary tag.
-    /// </summary>
-    /// <value>The binary tag.</value>
     internal abstract byte BinaryTag { get; }
 
-    /// <summary>
-    /// 	Gets the length of the binary representation.
-    /// </summary>
-    /// <value>The length of the binary.</value>
     internal abstract int BinaryLength { get; }
 
+    // whether equal nodes are written to the binary format once and referenced from every place they occur
     internal abstract bool IsBinaryUnique { get; }
 
     internal abstract void ReadXml(XmlReader reader);
@@ -38,22 +27,18 @@ public abstract class PNode
 }
 
 /// <summary>
-/// Plist node.
+/// A plist node holding a single value.
 /// </summary>
+/// <typeparam name="T">The type of the value.</typeparam>
 public abstract class PNode<T> : PNode, IEquatable<PNode>
 {
     /// <summary>
-    /// 	Gets the value.
+    /// Gets or sets the value of the node.
     /// </summary>
-    /// <value>The value.</value>
     public virtual T Value { get; set; }
 
     internal override bool IsBinaryUnique => true;
 
-    /// <summary>
-    /// Generates an object from its XML representation.
-    /// </summary>
-    /// <param name="reader">The <see cref="T:System.Xml.XmlReader"/> stream from which the object is deserialized.</param>
     internal override void ReadXml(XmlReader reader)
     {
         reader.ReadStartElement();
@@ -76,36 +61,19 @@ public abstract class PNode<T> : PNode, IEquatable<PNode>
 
     internal abstract string ToXmlString();
 
-    /// <summary>
-    /// Indicates whether the current object is equal to another object of the same type.
-    /// </summary>
-    /// <param name="other">An object to compare with this object.</param>
-    /// <returns>
-    /// true if the current object is equal to the <paramref name="other"/> parameter; otherwise, false.
-    /// </returns>
+    /// <inheritdoc/>
     public bool Equals(PNode other)
         => other is PNode<T> node && Value.Equals(node.Value);
 
-    /// <summary>
-    /// Determines whether the specified <see cref="System.Object"/> is equal to the current <see cref="PNode{T}"/>.
-    /// </summary>
-    /// <param name="obj">The <see cref="System.Object"/> to compare with the current <see cref="PNode{T}"/>.</param>
-    /// <returns><c>true</c> if the specified <see cref="System.Object"/> is equal to the current
-    /// <see cref="PNode{T}"/>; otherwise, <c>false</c>.</returns>
+    /// <inheritdoc/>
     public override bool Equals(object obj)
         => obj is PNode node && Equals(node);
 
-    /// <summary>
-    /// Serves as a hash function for a <see cref="PNode{T}"/> object.
-    /// </summary>
-    /// <returns>A hash code for this instance that is suitable for use in hashing algorithms and data structures such as a hash table.</returns>
+    /// <inheritdoc/>
     public override int GetHashCode()
         => Value.GetHashCode();
 
-    /// <summary>
-    /// Returns a <see cref="System.String"/> that represents the current <see cref="PNode{T}"/>.
-    /// </summary>
-    /// <returns>A <see cref="System.String"/> that represents the current <see cref="PNode{T}"/>.</returns>
+    /// <inheritdoc/>
     public override string ToString()
         => $"{XmlTag}: {Value}";
 }

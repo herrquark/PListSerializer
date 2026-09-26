@@ -1,23 +1,15 @@
-﻿using System.Globalization;
+using System.Globalization;
 using PlistSerializer.Core.Extensions;
 
 namespace PlistSerializer.Core.Nodes;
 
 /// <summary>
-/// Represents a double Value from a Plist
+/// A plist real number.
 /// </summary>
 public sealed class RealNode : PNode<double>
 {
-    /// <summary>
-    /// Gets the Xml tag of this element.
-    /// </summary>
-    /// <value>The Xml tag of this element.</value>
     internal override string XmlTag => "real";
 
-    /// <summary>
-    /// Gets the binary typecode of this element.
-    /// </summary>
-    /// <value>The binary typecode of this element.</value>
     internal override byte BinaryTag => 2;
 
     internal override int BinaryLength => 3;
@@ -30,31 +22,18 @@ public sealed class RealNode : PNode<double>
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="RealNode"/> class.
+    /// Initializes a new instance of the <see cref="RealNode"/> class with a value.
     /// </summary>
-    /// <param name="value">The value of this element.</param>
+    /// <param name="value">The value of the node.</param>
     public RealNode(double value)
         => Value = value;
 
-    /// <summary>
-    /// Parses the specified value from a given string, read from Xml.
-    /// </summary>
-    /// <param name="data">The string whis is parsed.</param>
     internal override void Parse(string data)
         => Value = double.Parse(data, CultureInfo.InvariantCulture);
 
-    /// <summary>
-    /// Gets the XML string representation of the Value.
-    /// </summary>
-    /// <returns>
-    /// The XML string representation of the Value.
-    /// </returns>
     internal override string ToXmlString()
         => Value.ToString("g", CultureInfo.InvariantCulture);
 
-    /// <summary>
-    /// Reads this element binary from the reader.
-    /// </summary>
     internal override void ReadBinary(Stream stream, int nodeLength)
     {
         var buf = new byte[1 << nodeLength];
@@ -72,9 +51,6 @@ public sealed class RealNode : PNode<double>
         };
     }
 
-    /// <summary>
-    /// Writes this element binary to the writer.
-    /// </summary>
     internal override void WriteBinary(Stream stream)
     {
         var buf = Value.GetBytes();

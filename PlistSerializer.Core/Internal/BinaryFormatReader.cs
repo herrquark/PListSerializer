@@ -1,55 +1,43 @@
-﻿using System.Text;
+using System.Text;
 using PlistSerializer.Core.Extensions;
 using PlistSerializer.Core.Nodes;
 
 namespace PlistSerializer.Core.Internal;
 
-/// <summary>
-/// A class, used to read binary formated <see cref="PNode"/> from a stream
-/// </summary>
+// reads a binary plist, as described in
+// https://medium.com/@karaiskc/understanding-apples-binary-property-list-format-281e6da00dbd
 internal class BinaryFormatReader
 {
-    /// <summary>
-    /// Reads a binary formated <see cref="PNode"/> from the specified stream.
-    /// </summary>
-    /// <param name="stream">The stream.</param>
-    /// <returns>The <see cref="PNode"/>, read from the specified stream</returns>
     public PNode Read(Stream stream)
     {
-        // reference material:
-        // - https://medium.com/@karaiskc/understanding-apples-binary-property-list-format-281e6da00dbd
-
-        // read in file header and verify expected bits are found
         ValidatePlistFileHeader(stream);
 
-        // read in file trailer
         var trailer = ReadTrailer(stream);
-
-        // read in node offsets
         var nodeOffsets = ReadNodeOffsets(stream, trailer);
-
         var readerState = new ReaderState(stream, nodeOffsets, trailer.OffsetIntSize, trailer.ObjectRefSize);
 
         return ReadInternal(readerState, trailer.TopObject);
     }
 
-    private void ValidatePlistFileHeader(Stream stream)
+    private static void ValidatePlistFileHeader(Stream stream)
     {
         stream.Seek(0, SeekOrigin.Begin);
 
         var buffer = new byte[8];
-        if (stream.Read(buffer, 0, buffer.Length) != buffer.Length) throw new PlistFormatException("Invalid plist file: must start with 8-byte header.");
+        if (stream.Read(buffer, 0, buffer.Length) != buffer.Length)
+            throw new PlistFormatException("Invalid plist file: must start with 8-byte header.");
 
-        // get first 6 bytes and match to expected text, "bplist"
+        // the first 6 bytes must read "bplist"
         var text = Encoding.UTF8.GetString(buffer, 0, 6);
-        if (text != "bplist") throw new PlistFormatException("Invalid plist file: must start with string \"bplist\".");
+        if (text != "bplist")
+            throw new PlistFormatException("Invalid plist file: must start with string \"bplist\".");
 
         // TODO: get version (ASCII numbers in bytes 7 and 8) and pass back to the parser
     }
 
     private static PlistTrailer ReadTrailer(Stream stream)
     {
-        // trailer is 32 bytes long, at the end of the file
+        // the trailer is the last 32 bytes of the file
         var buffer = new byte[32];
         stream.Seek(-32, SeekOrigin.End);
 
@@ -57,37 +45,29 @@ internal class BinaryFormatReader
             throw new PlistFormatException("Invalid plist file: unable to read trailer.");
 
         // all data in a binary plist file is big-endian
-        var trailer = new PlistTrailer
+        return new PlistTrailer
         {
             Unused = new byte[5],
-            SortVersionl = buffer[5],
+            SortVersion = buffer[5],
             OffsetIntSize = buffer[6],
             ObjectRefSize = buffer[7],
             NumObjects = buffer.ToUInt64(8),
             TopObject = buffer.ToUInt64(16),
             OffsetTableOffset = buffer.ToUInt64(24)
         };
-
-        return trailer;
     }
 
-    /// <summary>
-    ///		Read in offsets. Converting to Int32 because .NET Stream.Read method takes Int32s.
-    /// </summary>
-    /// <param name="stream"></param>
-    /// <param name="trailer"></param>
-    /// <returns></returns>
+    // offsets are read as Int32 because Stream.Read takes Int32 positions
     private static int[] ReadNodeOffsets(Stream stream, PlistTrailer trailer)
     {
-        // the bitconverter library we use only knows how to deal with integer offsets
-        if (trailer.NumObjects > int.MaxValue) throw new PlistFormatException($"Offset table contains too many entries: {trailer.NumObjects}.");
+        if (trailer.NumObjects > int.MaxValue)
+            throw new PlistFormatException($"Offset table contains too many entries: {trailer.NumObjects}.");
 
         // position the stream at the start of the offset table
-        if (stream.Seek((long) trailer.OffsetTableOffset, SeekOrigin.Begin) != (long) trailer.OffsetTableOffset)
+        if (stream.Seek((long)trailer.OffsetTableOffset, SeekOrigin.Begin) != (long)trailer.OffsetTableOffset)
             throw new PlistFormatException("Invalid plist file: unable to seek to start of the offset table.");
 
-        var offsetSize = trailer.OffsetIntSize;
-        var buffer = new byte[offsetSize];
+        var buffer = new byte[trailer.OffsetIntSize];
         var nodeOffsets = new int[trailer.NumObjects];
 
         for (ulong i = 0; i < trailer.NumObjects; i++)
@@ -111,34 +91,20 @@ internal class BinaryFormatReader
             _ => throw new PlistFormatException($"Unexpected offset int size: {buffer.Length}."),
         };
 
-    /// <summary>
-    /// Reads the <see cref="PNode"/> at the specified idx.
-    /// </summary>
-    /// <param name="readerState">Reader state.</param>
-    /// <param name="elemIdx">The elem idx.</param>
-    /// <returns>The <see cref="PNode"/> at the specified idx.</returns>
-    private PNode ReadInternal(ReaderState readerState, ulong elemIdx)
+    private PNode ReadInternal(ReaderState readerState, ulong nodeIndex)
     {
-        readerState.Stream.Seek(readerState.NodeOffsets[elemIdx], SeekOrigin.Begin);
+        readerState.Stream.Seek(readerState.NodeOffsets[nodeIndex], SeekOrigin.Begin);
         return ReadInternal(readerState);
     }
 
-    /// <summary>
-    /// Reads the <see cref="PNode"/> at the current stream position.
-    /// </summary>
-    /// <param name="readerState">Reader state.</param>
-    /// <returns>The <see cref="PNode"/> at the current stream position.</returns>
     private PNode ReadInternal(ReaderState readerState)
     {
         var tagAndLength = GetObjectLengthAndTag(readerState.Stream);
-
-        var tag = tagAndLength.Tag;
         var objectLength = tagAndLength.Length;
 
-        var node = NodeFactory.Create(tag, objectLength);
+        var node = NodeFactory.Create(tagAndLength.Tag, objectLength);
 
-        // array and dictionary are special-cased here
-        // while primitives handle their own loading
+        // arrays and dictionaries are read here, while the other nodes read themselves
         if (node is ArrayNode arrayNode)
         {
             ReadInArray(arrayNode, objectLength, readerState);
@@ -171,7 +137,7 @@ internal class BinaryFormatReader
         if (stream.Read(buf, 0, buf.Length) != buf.Length)
             throw new PlistFormatException("Couldn't read node tag byte.");
 
-        byte tag = (byte) ((buf[0] >> 4) & 0x0F);
+        var tag = (byte)((buf[0] >> 4) & 0x0F);
         var length = buf[0] & 0x0F;
 
         // length fits in 4 bits, return
@@ -187,7 +153,7 @@ internal class BinaryFormatReader
             throw new PlistFormatException("Invalid node length byte header.");
 
         // get the rightmost bits, giving us the number of bytes (power of 2) that we need
-        var byteCount = (int) Math.Pow(2, buf[0] & 0x0F);
+        var byteCount = (int)Math.Pow(2, buf[0] & 0x0F);
 
         // now get the length
         var lengthBuffer = new byte[byteCount];
@@ -208,52 +174,50 @@ internal class BinaryFormatReader
 
         for (var i = 0; i < nodeLength; i++)
         {
-            var topNode = GetNodeOffset(readerState, buf, i);
-            node.Add(ReadInternal(readerState, topNode));
+            var nodeIndex = GetNodeIndex(readerState, buf, i);
+            node.Add(ReadInternal(readerState, nodeIndex));
         }
     }
 
     private void ReadInDictionary(IDictionary<string, PNode> node, int nodeLength, ReaderState readerState)
     {
-        var bufKeys = new byte[nodeLength * readerState.ObjectRefSize];
-        var bufVals = new byte[nodeLength * readerState.ObjectRefSize];
+        var keyBuffer = new byte[nodeLength * readerState.ObjectRefSize];
+        var valueBuffer = new byte[nodeLength * readerState.ObjectRefSize];
 
-        if (readerState.Stream.Read(bufKeys, 0, bufKeys.Length) != bufKeys.Length)
+        if (readerState.Stream.Read(keyBuffer, 0, keyBuffer.Length) != keyBuffer.Length)
             throw new PlistFormatException();
 
-        if (readerState.Stream.Read(bufVals, 0, bufVals.Length) != bufVals.Length)
+        if (readerState.Stream.Read(valueBuffer, 0, valueBuffer.Length) != valueBuffer.Length)
             throw new PlistFormatException();
 
         for (var i = 0; i < nodeLength; i++)
         {
-            var topNode = GetNodeOffset(readerState, bufKeys, i);
-            var plKey = ReadInternal(readerState, topNode);
+            var keyNode = ReadInternal(readerState, GetNodeIndex(readerState, keyBuffer, i));
 
-            if (plKey is not StringNode stringKey)
+            if (keyNode is not StringNode stringKey)
                 throw new PlistFormatException("Key is not a string");
 
-            topNode = GetNodeOffset(readerState, bufVals, i);
-            var plVal = ReadInternal(readerState, topNode);
+            var valueNode = ReadInternal(readerState, GetNodeIndex(readerState, valueBuffer, i));
 
-            node.Add(stringKey.Value, plVal);
+            node.Add(stringKey.Value, valueNode);
         }
     }
 
-    private static ulong GetNodeOffset(ReaderState readerState, byte[] bufKeys, int index)
+    private static ulong GetNodeIndex(ReaderState readerState, byte[] buffer, int index)
         => readerState.ObjectRefSize switch
         {
-            1 => bufKeys[index],
-            2 => bufKeys.ToUInt16(readerState.ObjectRefSize * index),
-            4 => bufKeys.ToUInt32(readerState.ObjectRefSize * index),
-            8 => bufKeys.ToUInt64(readerState.ObjectRefSize * index),
-            _ => throw new PlistFormatException("$Unexpected index size: {readerState.IndexSize}."),
+            1 => buffer[index],
+            2 => buffer.ToUInt16(readerState.ObjectRefSize * index),
+            4 => buffer.ToUInt32(readerState.ObjectRefSize * index),
+            8 => buffer.ToUInt64(readerState.ObjectRefSize * index),
+            _ => throw new PlistFormatException($"Unexpected object reference size: {readerState.ObjectRefSize}."),
         };
 
-    private sealed class ReaderState(Stream stream, int[] nodeOffsets, int indexSize, int objectRefSize)
+    private sealed class ReaderState(Stream stream, int[] nodeOffsets, int offsetIntSize, int objectRefSize)
     {
         public Stream Stream { get; } = stream;
         public int[] NodeOffsets { get; } = nodeOffsets;
-        public int OffsetIntSize { get; } = indexSize;
+        public int OffsetIntSize { get; } = offsetIntSize;
         public int ObjectRefSize { get; } = objectRefSize;
     }
 }

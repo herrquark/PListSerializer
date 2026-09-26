@@ -1,5 +1,5 @@
-using System.Collections.Concurrent;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Reflection;
 using PlistSerializer.Core.Extensions;
@@ -7,11 +7,20 @@ using PlistSerializer.Core.Nodes;
 
 namespace PlistSerializer.Core;
 
-public class Serializer
+/// <summary>
+/// Maps .NET objects to plist nodes.
+/// </summary>
+public static class Serializer
 {
+    private static readonly ConcurrentDictionary<Type, GetterMember[]> MembersCache = [];
+
+    /// <summary>
+    /// Serializes an object into a plist node.
+    /// </summary>
+    /// <param name="obj">The object to serialize.</param>
+    /// <returns>The node representing <paramref name="obj"/>.</returns>
     public static PNode Serialize(object obj)
-    {
-        return obj switch
+        => obj switch
         {
             bool b => new BooleanNode(b),
             int i => new IntegerNode(i),
@@ -30,19 +39,16 @@ public class Serializer
             IEnumerable enumerable => SerializeEnumerable(enumerable),
             _ => SerializeComplexType(obj)
         };
-    }
 
     private static PNode SerializeComplexType(object obj)
     {
-        var type = obj.GetType();
-        var members = GetMembers(type);
         var dictNode = new DictionaryNode();
 
-        foreach (var member in members)
+        foreach (var member in GetMembers(obj.GetType()))
         {
-            var val = member.Get(obj);
-            if (val != null && (member.DefaultValue == null || !val.Equals(member.DefaultValue)))
-                dictNode.Add(member.Name, Serialize(val));
+            var value = member.Get(obj);
+            if (value != null && (member.DefaultValue == null || !value.Equals(member.DefaultValue)))
+                dictNode.Add(member.Name, Serialize(value));
         }
 
         return dictNode;
@@ -67,12 +73,12 @@ public class Serializer
     {
         var dictNode = new DictionaryNode();
 
-        foreach (var kvp in pairs)
+        foreach (var (key, value) in pairs)
         {
-            if (kvp.Value is null)
+            if (value is null)
                 continue;
 
-            dictNode.Add(kvp.Key, Serialize(kvp.Value));
+            dictNode.Add(key, Serialize(value));
         }
 
         return dictNode;
@@ -85,19 +91,9 @@ public class Serializer
         return node;
     }
 
-    class GetterMember
-    {
-        public string Name { get; set; }
-        public Func<object, object> Get { get; set; }
-        public object DefaultValue { get; set; }
-    }
-
-    private static readonly ConcurrentDictionary<Type, GetterMember[]> MembersCache = [];
-
     private static GetterMember[] GetMembers(Type type)
     {
-
-        if (MembersCache.TryGetValue(type, out GetterMember[] members))
+        if (MembersCache.TryGetValue(type, out var members))
             return members;
 
         var props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public)
@@ -129,4 +125,11 @@ public class Serializer
             Get = f.GetValue,
             DefaultValue = f.GetCustomAttribute<DefaultValueAttribute>(false)?.Value
         };
+
+    private sealed class GetterMember
+    {
+        public string Name { get; set; }
+        public Func<object, object> Get { get; set; }
+        public object DefaultValue { get; set; }
+    }
 }

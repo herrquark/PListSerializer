@@ -1,32 +1,19 @@
-﻿using System.Globalization;
+using System.Globalization;
 using PlistSerializer.Core.Extensions;
 
 namespace PlistSerializer.Core.Nodes;
 
 /// <summary>
-/// Represents an integer Value from a Plist
+/// A plist integer.
 /// </summary>
 public class IntegerNode : PNode<long>
 {
-    /// <summary>
-    /// Gets the Xml tag of this element.
-    /// </summary>
-    /// <value>The Xml tag of this element.</value>
     internal override string XmlTag => "integer";
 
-    /// <summary>
-    /// Gets the binary typecode of this element.
-    /// </summary>
-    /// <value>The binary typecode of this element.</value>
     internal override byte BinaryTag => 1;
 
-    /// <summary>
-    /// Gets the length of this Plist element.
-    /// </summary>
-    /// <returns>The length of this Plist element.</returns>
-    /// <remarks>Provided for internal use only.</remarks>
     internal override int BinaryLength
-    => Value switch
+        => Value switch
         {
             >= byte.MinValue and <= byte.MaxValue => 0,
             >= short.MinValue and <= short.MaxValue => 1,
@@ -34,10 +21,7 @@ public class IntegerNode : PNode<long>
             >= long.MinValue and <= long.MaxValue => 3,
         };
 
-    /// <summary>
-    /// Gets or sets the value of this element.
-    /// </summary>
-    /// <value>The value of this element.</value>
+    /// <inheritdoc/>
     public override long Value { get; set; }
 
     /// <summary>
@@ -48,33 +32,18 @@ public class IntegerNode : PNode<long>
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="IntegerNode"/> class.
+    /// Initializes a new instance of the <see cref="IntegerNode"/> class with a value.
     /// </summary>
-    /// <param name="value">The value of this element.</param>
+    /// <param name="value">The value of the node.</param>
     public IntegerNode(long value)
         => Value = value;
 
-    /// <summary>
-    /// Parses the specified value from a given string, read from Xml.
-    /// </summary>
-    /// <param name="data">The string whis is parsed.</param>
     internal override void Parse(string data)
         => Value = long.Parse(data, CultureInfo.InvariantCulture);
 
-    /// <summary>
-    /// Gets the XML string representation of the Value.
-    /// </summary>
-    /// <returns>
-    /// The XML string representation of the Value.
-    /// </returns>
     internal override string ToXmlString()
         => Value.ToString(CultureInfo.InvariantCulture);
 
-    /// <summary>
-    /// Reads the binary stream.
-    /// </summary>
-    /// <param name="stream">Stream.</param>
-    /// <param name="nodeLength">Node length.</param>
     internal override void ReadBinary(Stream stream, int nodeLength)
     {
         var buf = new byte[1 << nodeLength];
@@ -92,9 +61,6 @@ public class IntegerNode : PNode<long>
         };
     }
 
-    /// <summary>
-    /// Writes this element binary to the writer.
-    /// </summary>
     internal override void WriteBinary(Stream stream)
     {
         byte[] buf = BinaryLength switch

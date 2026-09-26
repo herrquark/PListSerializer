@@ -1,10 +1,13 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
+using System.Reflection;
 using PlistSerializer.Core.Attributes;
 
 namespace PlistSerializer.Core.Extensions;
 
 internal static class TypeExtensions
 {
+    private static readonly ConcurrentDictionary<Type, IPlistTypeResolver> ResolverCache = [];
+
     // the interfaces deserialize into the concrete collection
     public static bool IsList(this Type type)
         => type.IsGenericTypeOf(typeof(List<>), typeof(IList<>), typeof(ICollection<>), typeof(IEnumerable<>), typeof(IReadOnlyList<>), typeof(IReadOnlyCollection<>));
@@ -15,23 +18,17 @@ internal static class TypeExtensions
     public static bool IsDictionary(this Type type)
         => type.IsGenericTypeOf(typeof(Dictionary<,>), typeof(IDictionary<,>), typeof(IReadOnlyDictionary<,>));
 
+    public static IPlistTypeResolver GetResolver(this Type type)
+    {
+        var attribute = type.GetCustomAttribute<PlistTypeResolverAttribute>(false);
+
+        return attribute is not null
+            ? ResolverCache.GetOrAdd(type, _ => (IPlistTypeResolver)Activator.CreateInstance(attribute.Resolver))
+            : null;
+    }
+
     private static bool IsGenericTypeOf(this Type type, params Type[] definitions)
         => type != null &&
            type.IsGenericType &&
            definitions.Contains(type.GetGenericTypeDefinition());
-
-
-    private static ConcurrentDictionary<Type, IPlistTypeResolver> ResolverCache { get; set; } = [];
-
-    public static IPlistTypeResolver GetResolver(this Type type)
-    {
-        var attr = type
-            .GetCustomAttributes(typeof(PlistTypeResolverAttribute), false)
-            .Cast<PlistTypeResolverAttribute>()
-            .FirstOrDefault();
-
-        return attr is not null
-            ? ResolverCache.GetOrAdd(type, _ => (IPlistTypeResolver)Activator.CreateInstance(attr.Resolver))
-            : null;
-    }
 }

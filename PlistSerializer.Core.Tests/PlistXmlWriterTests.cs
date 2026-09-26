@@ -48,7 +48,7 @@ public class PlistXmlWriterTests
     public void Save_XmlBoolean_Test()
     {
         using var outStream = new MemoryStream();
-        // create basic Plist containing a boolean value
+        // create a basic plist containing a boolean value
         var node = new DictionaryNode { { "Test", new BooleanNode(true) } };
 
         // save and reset stream
@@ -101,7 +101,7 @@ public class PlistXmlWriterTests
         using var outStream = new MemoryStream();
         var utf16value = "😂test";
 
-        // create basic Plist containing a string value
+        // create a basic plist containing a string value
         var node = new DictionaryNode { ["Test"] = new StringNode(utf16value) };
 
         // save and reset stream

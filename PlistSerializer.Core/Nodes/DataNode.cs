@@ -1,25 +1,14 @@
-﻿namespace PlistSerializer.Core.Nodes;
+namespace PlistSerializer.Core.Nodes;
 
 /// <summary>
-/// Represents a byte[] Value from a Plist
+/// A plist data blob.
 /// </summary>
 public sealed class DataNode : PNode<byte[]>
 {
-    /// <summary>
-    /// Gets the Xml tag of this element.
-    /// </summary>
-    /// <value>The Xml tag of this element.</value>
     internal override string XmlTag => "data";
 
-    /// <summary>
-    /// Gets the binary typecode of this element.
-    /// </summary>
-    /// <value>The binary typecode of this element.</value>
     internal override byte BinaryTag => 4;
 
-    /// <summary>
-    /// Gets the length of this Plist element.
-    /// </summary>
     internal override int BinaryLength => Value.Length;
 
     /// <summary>
@@ -30,31 +19,19 @@ public sealed class DataNode : PNode<byte[]>
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="DataNode"/> class.
+    /// Initializes a new instance of the <see cref="DataNode"/> class with a value.
     /// </summary>
-    /// <param name="value">The value of this element.</param>
+    /// <param name="value">The value of the node.</param>
     public DataNode(byte[] value)
         => Value = value;
 
-    /// <summary>
-    /// Parses the specified value from a given string (encoded as Base64), read from Xml.
-    /// </summary>
-    /// <param name="data">The string whis is parsed.</param>
+    // XML holds the bytes as Base64
     internal override void Parse(string data)
         => Value = Convert.FromBase64String(data);
 
-    /// <summary>
-    /// Gets the XML string representation of the Value.
-    /// </summary>
-    /// <returns>
-    /// The XML string representation of the Value (encoded as Base64).
-    /// </returns>
     internal override string ToXmlString()
         => Convert.ToBase64String(Value);
 
-    /// <summary>
-    /// Reads this element binary from the reader.
-    /// </summary>
     internal override void ReadBinary(Stream stream, int nodeLength)
     {
         Value = new byte[nodeLength];
@@ -63,9 +40,6 @@ public sealed class DataNode : PNode<byte[]>
             throw new PlistFormatException();
     }
 
-    /// <summary>
-    /// Writes this element binary to the writer.
-    /// </summary>
     internal override void WriteBinary(Stream stream)
         => stream.Write(Value, 0, Value.Length);
 }

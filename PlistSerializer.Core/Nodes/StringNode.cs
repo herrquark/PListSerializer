@@ -1,43 +1,26 @@
-﻿using System.Text;
-using System.Xml;
+using System.Text;
 using PlistSerializer.Core.Extensions;
 using XmlTools;
 
 namespace PlistSerializer.Core.Nodes;
 
 /// <summary>
-/// Represents an string Value from a Plist
+/// A plist string.
 /// </summary>
 public class StringNode : PNode<string>
 {
-    private static readonly byte[] _utf8Bytes = Enumerable.Range(0, 256).Select(i => (byte) i).ToArray();
+    private static readonly byte[] Utf8Bytes = Enumerable.Range(0, 256).Select(i => (byte)i).ToArray();
 
-    private static readonly HashSet<char> _utf8Chars = new(Encoding.UTF8.GetChars(_utf8Bytes));
+    private static readonly HashSet<char> Utf8Chars = new(Encoding.UTF8.GetChars(Utf8Bytes));
 
     private string _value;
 
-    /// <summary>
-    /// Gets the Xml tag of this element.
-    /// </summary>
-    /// <value>The Xml tag of this element.</value>
     internal override string XmlTag => "string";
 
-    /// <summary>
-    /// Gets the binary typecode of this element.
-    /// </summary>
-    /// <value>The binary typecode of this element.</value>
-    internal override byte BinaryTag => (byte) (IsUtf16 ? 6 : 5);
+    internal override byte BinaryTag => (byte)(IsUtf16 ? 6 : 5);
 
-    /// <summary>
-    /// Gets the length of this Plist element.
-    /// </summary>
-    /// <returns>The length of this Plist element.</returns>
     internal override int BinaryLength => Value.Length;
 
-    /// <summary>
-    /// Gets or sets a value indicating whether this instance is UTF16.
-    /// </summary>
-    /// <value><c>true</c> if this instance is UTF16; otherwise, <c>false</c>.</value>
     internal bool IsUtf16 { get; set; }
 
     /// <summary>
@@ -48,16 +31,13 @@ public class StringNode : PNode<string>
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="StringNode"/> class.
+    /// Initializes a new instance of the <see cref="StringNode"/> class with a value.
     /// </summary>
-    /// <param name="value">The value.</param>
+    /// <param name="value">The value of the node.</param>
     public StringNode(string value)
         => Value = value;
 
-    /// <summary>
-    /// Gets or sets the value of this element.
-    /// </summary>
-    /// <value>The value of this element.</value>
+    /// <inheritdoc/>
     public sealed override string Value
     {
         get => _value;
@@ -65,10 +45,10 @@ public class StringNode : PNode<string>
         {
             _value = value;
 
-            //Detect Encoding
-            foreach (char c in value)
+            // detect the encoding the binary format needs
+            foreach (var c in value)
             {
-                if (!_utf8Chars.Contains(c))
+                if (!Utf8Chars.Contains(c))
                 {
                     IsUtf16 = true;
                     return;
@@ -79,28 +59,15 @@ public class StringNode : PNode<string>
         }
     }
 
-    /// <summary>
-    /// Parses the specified value from a given string, read from Xml.
-    /// </summary>
-    /// <param name="data">The string whis is parsed.</param>
     internal override void Parse(string data)
         => Value = data;
 
     internal override void WriteXml(LightXmlWriter writer, int indent = 0)
         => writer.WriteElementLineWithValue(XmlTag, ToXmlString(), indent);
 
-    /// <summary>
-    /// Gets the XML string representation of the Value.
-    /// </summary>
-    /// <returns>
-    /// The XML string representation of the Value.
-    /// </returns>
     internal override string ToXmlString()
         => Value;
 
-    /// <summary>
-    /// Reads this element binary from the reader.
-    /// </summary>
     internal override void ReadBinary(Stream stream, int nodeLength)
     {
         var buf = new byte[nodeLength * (BinaryTag == 5 ? 1 : 2)];
@@ -113,13 +80,10 @@ public class StringNode : PNode<string>
         Value = encoding.GetString(buf, 0, buf.Length);
     }
 
-    /// <summary>
-    /// Writes this element binary to the writer.
-    /// </summary>
     internal override void WriteBinary(Stream stream)
     {
-        Encoding enc = IsUtf16 ? Encoding.BigEndianUnicode : Encoding.UTF8;
-        var buf = enc.GetBytes(Value);
+        var encoding = IsUtf16 ? Encoding.BigEndianUnicode : Encoding.UTF8;
+        var buf = encoding.GetBytes(Value);
         stream.Write(buf, 0, buf.Length);
     }
 }

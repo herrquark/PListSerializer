@@ -1,4 +1,5 @@
-﻿using System.Xml;
+using System.Collections;
+using System.Xml;
 using PlistSerializer.Core.Extensions;
 using PlistSerializer.Core.Internal;
 using XmlTools;
@@ -6,69 +7,41 @@ using XmlTools;
 namespace PlistSerializer.Core.Nodes;
 
 /// <summary>
-/// Represents an dictionary with <see cref="T:System.String"/> keys and <see cref="PNode"/> values
+/// A plist dictionary of nodes keyed by strings.
 /// </summary>
 public class DictionaryNode : PNode, IDictionary<string, PNode>
 {
     private readonly IDictionary<string, PNode> _dictionary = new Dictionary<string, PNode>();
 
-    /// <summary>
-    /// Gets the Xml tag of this element.
-    /// </summary>
-    /// <value>The Xml tag of this element.</value>
     internal override string XmlTag => "dict";
 
-    /// <summary>
-    /// Gets the binary typecode of this element.
-    /// </summary>
-    /// <value>The binary typecode of this element.</value>
     internal override byte BinaryTag => 0x0D;
 
-    /// <summary>
-    /// Gets the length of this Plist node.
-    /// </summary>
-    /// <returns>The length of this Plist node.</returns>
     internal override int BinaryLength => Count;
 
-    /// <summary>
-    /// Gets a value indicating whether this instance is written only once in binary mode.
-    /// </summary>
-    /// <value>
-    /// 	<c>true</c> this instance is written only once in binary mode; otherwise, <c>false</c>.
-    /// </value>
     internal override bool IsBinaryUnique => false;
 
-    /// <summary>
-    /// Reads this element binary from the reader.
-    /// </summary>
     internal override void ReadBinary(Stream stream, int nodeLength)
-        => throw new NotImplementedException("This type of node does not do it's own reading, refer to the binary reader.");
+        => throw new NotImplementedException("This type of node does not do its own reading, refer to the binary reader.");
 
-    /// <summary>
-    /// Writes this element binary to the writer.
-    /// </summary>
     internal override void WriteBinary(Stream stream)
-        => throw new NotImplementedException("This type of node does not do it's own writing, refer to the binary writer.");
+        => throw new NotImplementedException("This type of node does not do its own writing, refer to the binary writer.");
 
-    /// <summary>
-    /// Generates an object from its XML representation.
-    /// </summary>
-    /// <param name="reader">The <see cref="T:System.Xml.XmlReader"/> stream from which the object is deserialized.</param>
     internal override void ReadXml(XmlReader reader)
     {
-        bool wasEmpty = reader.IsEmptyElement;
+        var wasEmpty = reader.IsEmptyElement;
         reader.Read();
 
         if (wasEmpty)
             return;
 
-        // make sure we are position at an element, skipping white space and such
+        // skip white space and such to get to the first element
         reader.MoveToContent();
 
         while (reader.NodeType != XmlNodeType.EndElement)
         {
             reader.ReadStartElement("key");
-            string key = reader.ReadContentAsString();
+            var key = reader.ReadContentAsString();
             reader.ReadEndElement();
 
             reader.MoveToContent();
@@ -101,134 +74,65 @@ public class DictionaryNode : PNode, IDictionary<string, PNode>
         writer.WriteEndElementLineWithIndent(XmlTag, indent);
     }
 
-    #region IDictionary implementation
-
-    /// <summary>
-    /// Determines whether the current instance contains an entry with the specified key.
-    /// </summary>
-    /// <returns><c>true</c>, if key was containsed, <c>false</c> otherwise.</returns>
-    /// <param name="key">Key.</param>
+    /// <inheritdoc/>
     public bool ContainsKey(string key)
         => _dictionary.ContainsKey(key);
 
-    /// <summary>
-    /// Add the specified value with specified key.
-    /// </summary>
-    /// <param name="key">Key.</param>
-    /// <param name="value">Value.</param>
+    /// <inheritdoc/>
     public void Add(string key, PNode value)
         => _dictionary.Add(key, value);
 
-    /// <summary>
-    /// Remove value at the specified key.
-    /// </summary>
-    /// <param name="key">Key.</param>
+    /// <inheritdoc/>
     public bool Remove(string key)
         => _dictionary.Remove(key);
 
-    /// <summary>
-    /// Attempts to retrieve value at the specified key.
-    /// </summary>
-    /// <returns><c>true</c>, if key was found, <c>false</c> otherwise.</returns>
-    /// <param name="key">Key.</param>
-    /// <param name="value">Value.</param>
+    /// <inheritdoc/>
     public bool TryGetValue(string key, out PNode value)
         => _dictionary.TryGetValue(key, out value);
 
-    /// <summary>
-    /// Gets or sets the <see cref="PNode"/> at the specified index.
-    /// </summary>
-    /// <param name="index">Index.</param>
-    public PNode this[string index]
+    /// <inheritdoc/>
+    public PNode this[string key]
     {
-        get => _dictionary[index];
-        set => _dictionary[index] = value;
+        get => _dictionary[key];
+        set => _dictionary[key] = value;
     }
 
-    /// <summary>
-    /// Gets the keys.
-    /// </summary>
-    /// <value>The keys.</value>
+    /// <inheritdoc/>
     public ICollection<string> Keys => _dictionary.Keys;
 
-    /// <summary>
-    /// Gets the values.
-    /// </summary>
-    /// <value>The values.</value>
+    /// <inheritdoc/>
     public ICollection<PNode> Values => _dictionary.Values;
 
-    #endregion
-
-    #region ICollection implementation
-
-    /// <summary>
-    /// Add the specified key/value pair.
-    /// </summary>
-    /// <param name="item">Item.</param>
+    /// <inheritdoc/>
     public void Add(KeyValuePair<string, PNode> item)
         => _dictionary.Add(item);
 
-    /// <summary>
-    /// Clear this instance.
-    /// </summary>
+    /// <inheritdoc/>
     public void Clear()
         => _dictionary.Clear();
 
-    /// <summary>
-    /// Contains the specified key/value pair.
-    /// </summary>
-    /// <param name="item">Item.</param>
+    /// <inheritdoc/>
     public bool Contains(KeyValuePair<string, PNode> item)
         => _dictionary.Contains(item);
 
-    /// <summary>
-    /// Copies values.
-    /// </summary>
-    /// <param name="array">Array.</param>
-    /// <param name="arrayIndex">Array index.</param>
+    /// <inheritdoc/>
     public void CopyTo(KeyValuePair<string, PNode>[] array, int arrayIndex)
         => _dictionary.CopyTo(array, arrayIndex);
 
-    /// <summary>
-    /// Remove the specified key/value pair.
-    /// </summary>
-    /// <param name="item">Item.</param>
+    /// <inheritdoc/>
     public bool Remove(KeyValuePair<string, PNode> item)
         => _dictionary.Remove(item);
 
-    /// <summary>
-    /// Gets the count.
-    /// </summary>
-    /// <value>The count.</value>
+    /// <inheritdoc/>
     public int Count => _dictionary.Count;
 
-    /// <summary>
-    /// Gets a value indicating whether this instance is read only.
-    /// </summary>
-    /// <value><c>true</c> if this instance is read only; otherwise, <c>false</c>.</value>
+    /// <inheritdoc/>
     public bool IsReadOnly => false;
 
-    #endregion
-
-    #region IEnumerable implementation
-
-    /// <summary>
-    /// Gets the enumerator.
-    /// </summary>
-    /// <returns>The enumerator.</returns>
+    /// <inheritdoc/>
     public IEnumerator<KeyValuePair<string, PNode>> GetEnumerator()
         => _dictionary.GetEnumerator();
 
-    #endregion
-
-    #region IEnumerable implementation
-
-    /// <summary>
-    /// Gets the enumerator.
-    /// </summary>
-    /// <returns>The enumerator.</returns>
-    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+    IEnumerator IEnumerable.GetEnumerator()
         => _dictionary.GetEnumerator();
-
-    #endregion
 }

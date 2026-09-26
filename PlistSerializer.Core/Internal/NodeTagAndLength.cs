@@ -1,7 +1,7 @@
-﻿namespace PlistSerializer.Core.Internal;
+namespace PlistSerializer.Core.Internal;
 
 internal class NodeTagAndLength(byte tag, int length)
 {
-    public byte Tag { get; private set; } = tag;
-    public int Length { get; private set; } = length;
+    public byte Tag { get; } = tag;
+    public int Length { get; } = length;
 }

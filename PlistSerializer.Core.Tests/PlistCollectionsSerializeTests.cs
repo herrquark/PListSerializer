@@ -118,9 +118,6 @@ public class PlistCollectionsSerializeTests
 
         var ba = Deserializer.Deserialize<ClassWithSameTypes>(res[7]);
         Assert.Equal(arr[7].ByteArray, ba.ByteArray);
-
-        // var hsc = Deserializer.Deserialize<ClassWithSameTypes>(res[7]);
-        // Assert.That(hsc.HashSetOfSelf.Select(x => x.Id), Is.EquivalentTo(arr[7].HashSetOfSelf.Select(x => x.Id)));
     }
 
     [Fact]

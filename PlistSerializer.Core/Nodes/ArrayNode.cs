@@ -1,4 +1,5 @@
-﻿using System.Xml;
+using System.Collections;
+using System.Xml;
 using PlistSerializer.Core.Extensions;
 using PlistSerializer.Core.Internal;
 using XmlTools;
@@ -6,64 +7,43 @@ using XmlTools;
 namespace PlistSerializer.Core.Nodes;
 
 /// <summary>
-/// Represents an array of an <see cref="PNode"/> objects
+/// A plist array of nodes.
 /// </summary>
 public class ArrayNode : PNode, IList<PNode>
 {
     private readonly List<PNode> _list = [];
 
-    /// <summary>
-    /// Gets the Xml tag of this element.
-    /// </summary>
-    /// <value>The Xml tag of this element.</value>
     internal override string XmlTag => "array";
 
-    /// <summary>
-    /// Gets the binary typecode of this element.
-    /// </summary>
-    /// <value>The binary typecode of this element.</value>
     internal override byte BinaryTag => 0x0A;
 
     internal override int BinaryLength => _list.Count;
 
-    /// <summary>
-    /// Gets a value indicating whether this instance is written only once in binary mode.
-    /// </summary>
-    /// <value>
-    /// 	<c>true</c> this instance is written only once in binary mode; otherwise, <c>false</c>.
-    /// </value>
     internal override bool IsBinaryUnique => false;
 
-    /// <summary>
-    /// Reads this element binary from the reader.
-    /// </summary>
     internal override void ReadBinary(Stream stream, int nodeLength)
-        => throw new NotImplementedException("This type of node does not do it's own reading, refer to the binary reader.");
+        => throw new NotImplementedException("This type of node does not do its own reading, refer to the binary reader.");
 
     internal override void WriteBinary(Stream stream)
-        => throw new NotImplementedException("This type of node does not do it's own writing, refer to the binary writer.");
+        => throw new NotImplementedException("This type of node does not do its own writing, refer to the binary writer.");
 
-    /// <summary>
-    /// Generates an object from its XML representation.
-    /// </summary>
-    /// <param name="reader">The <see cref="T:System.Xml.XmlReader"/> stream from which the object is deserialized.</param>
     internal override void ReadXml(XmlReader reader)
     {
-        bool wasEmpty = reader.IsEmptyElement;
+        var wasEmpty = reader.IsEmptyElement;
         reader.Read();
 
         if (wasEmpty)
             return;
 
-        // make sure we are position at an element, skipping white space and such
+        // skip white space and such to get to the first element
         reader.MoveToContent();
 
         while (reader.NodeType != XmlNodeType.EndElement)
         {
-            var plelem = NodeFactory.Create(reader.LocalName);
-            plelem.ReadXml(reader);
+            var node = NodeFactory.Create(reader.LocalName);
+            node.ReadXml(reader);
 
-            Add(plelem);
+            Add(node);
             reader.MoveToContent();
         }
 
@@ -74,120 +54,68 @@ public class ArrayNode : PNode, IList<PNode>
     {
         writer.WriteStartElementLineWithIndent(XmlTag, indent);
 
-        for (int i = 0; i < Count; i++)
+        for (var i = 0; i < Count; i++)
             this[i].WriteXml(writer, indent + 1);
 
         writer.WriteEndElementLineWithIndent(XmlTag, indent);
     }
 
-    #region IList implementation
-
-    /// <summary>
-    /// Determines the index of a specific item in the current instance.
-    /// </summary>
-    /// <returns>The index.</returns>
-    /// <param name="item">Item.</param>
+    /// <inheritdoc/>
     public int IndexOf(PNode item)
         => _list.IndexOf(item);
 
-    /// <summary>
-    /// Insert the specified item at index.
-    /// </summary>
-    /// <param name="index">Index.</param>
-    /// <param name="item">Item.</param>
+    /// <inheritdoc/>
     public void Insert(int index, PNode item)
         => _list.Insert(index, item);
 
-    /// <summary>
-    /// Removes the item at index.
-    /// </summary>
-    /// <param name="index">Index.</param>
+    /// <inheritdoc/>
     public void RemoveAt(int index)
         => _list.RemoveAt(index);
 
-    /// <summary>
-    /// Gets or sets the <see cref="PNode"/> at the specified index.
-    /// </summary>
-    /// <param name="index">Index.</param>
+    /// <inheritdoc/>
     public PNode this[int index]
     {
         get => _list[index];
         set => _list[index] = value;
     }
-    #endregion
 
-    #region ICollection implementation
-    /// <summary>
-    /// Add the specified item.
-    /// </summary>
-    /// <param name="item">Item.</param>
+    /// <inheritdoc/>
     public void Add(PNode item)
         => _list.Add(item);
 
     /// <summary>
-    /// Clear this instance.
+    /// Adds the nodes to the end of the array.
     /// </summary>
+    /// <param name="items">The nodes to add.</param>
+    public void AddRange(IEnumerable<PNode> items)
+        => _list.AddRange(items);
+
+    /// <inheritdoc/>
     public void Clear()
         => _list.Clear();
 
-    /// <summary>
-    /// Determines whether the current collection contains a specific value.
-    /// </summary>
-    /// <param name="item">Item.</param>
+    /// <inheritdoc/>
     public bool Contains(PNode item)
         => _list.Contains(item);
 
-    /// <summary>
-    /// Copies array.
-    /// </summary>
-    /// <param name="array">Array.</param>
-    /// <param name="arrayIndex">Array index.</param>
+    /// <inheritdoc/>
     public void CopyTo(PNode[] array, int arrayIndex)
         => _list.CopyTo(array, arrayIndex);
 
-    /// <summary>
-    /// Remove the specified item.
-    /// </summary>
-    /// <param name="item">Item.</param>
+    /// <inheritdoc/>
     public bool Remove(PNode item)
         => _list.Remove(item);
 
-    /// <summary>
-    /// Gets the count.
-    /// </summary>
-    /// <value>The count.</value>
+    /// <inheritdoc/>
     public int Count => _list.Count;
 
-    /// <summary>
-    /// Gets a value indicating whether this instance is read only.
-    /// </summary>
-    /// <value><c>true</c> if this instance is read only; otherwise, <c>false</c>.</value>
+    /// <inheritdoc/>
     public bool IsReadOnly => false;
 
-    #endregion
-
-    #region IEnumerable implementation
-
-    /// <summary>
-    /// Gets the enumerator.
-    /// </summary>
-    /// <returns>The enumerator.</returns>
+    /// <inheritdoc/>
     public IEnumerator<PNode> GetEnumerator()
         => _list.GetEnumerator();
 
-    #endregion
-
-    #region IEnumerable implementation
-
-    /// <summary>
-    /// Gets the enumerator.
-    /// </summary>
-    /// <returns>The enumerator.</returns>
-    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+    IEnumerator IEnumerable.GetEnumerator()
         => _list.GetEnumerator();
-
-    #endregion
-
-    public void AddRange(IEnumerable<PNode> items)
-        => _list.AddRange(items);
 }

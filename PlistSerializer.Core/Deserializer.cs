@@ -6,8 +6,17 @@ using PlistSerializer.Core.Nodes;
 
 namespace PlistSerializer.Core;
 
-public class Deserializer
+/// <summary>
+/// Maps plist nodes to .NET objects.
+/// </summary>
+public static class Deserializer
 {
+    /// <summary>
+    /// Deserializes a plist node into an instance of <typeparamref name="TOut"/>.
+    /// </summary>
+    /// <typeparam name="TOut">The type to create.</typeparam>
+    /// <param name="node">The node to read.</param>
+    /// <returns>The deserialized value.</returns>
     public static TOut Deserialize<TOut>(PNode node)
         => (TOut)Deserialize(typeof(TOut), node);
 
@@ -15,9 +24,7 @@ public class Deserializer
         => type switch
         {
             _ when type.IsDictionary() => DeserializeDictionary(type, node),
-
             _ when type.IsArray => DeserializeArray(type, node),
-
             _ when type.IsList() => DeserializeList(type, node),
             _ when type.IsHashSet() => DeserializeHashSet(type, node),
             _ when type.IsEnum => DeserializeEnum(type, node),
@@ -27,7 +34,6 @@ public class Deserializer
             _ when node is StringNode stringNode => ConvertToType(stringNode.Value, type),
             _ when node is BooleanNode booleanNode => ConvertToType(booleanNode.Value, type),
             _ when node is DateNode dateNode => ConvertToType(dateNode.Value, type),
-
 
             _ => DeserializeObject(type, node)
         };
@@ -41,13 +47,8 @@ public class Deserializer
         var valueType = type.GenericTypeArguments[1];
         var dictionary = (IDictionary)Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(type.GenericTypeArguments));
 
-        foreach (var kvp in dictionaryNode)
-        {
-            var key = kvp.Key;
-            var value = kvp.Value;
-
-            dictionary.Add(key.ToString(), Deserialize(valueType, value));
-        }
+        foreach (var (key, value) in dictionaryNode)
+            dictionary.Add(key, Deserialize(valueType, value));
 
         return dictionary;
     }
@@ -65,10 +66,7 @@ public class Deserializer
         var array = Array.CreateInstance(elementType, arrayNode.Count);
 
         for (var i = 0; i < arrayNode.Count; i++)
-        {
-            var itemNode = arrayNode[i];
-            array.SetValue(Deserialize(elementType, itemNode), i);
-        }
+            array.SetValue(Deserialize(elementType, arrayNode[i]), i);
 
         return array;
     }
@@ -123,19 +121,13 @@ public class Deserializer
             .Where(p => p.IsPlistMember())
             .ToArray();
 
-        foreach (var kvp in dictionaryNode)
+        foreach (var (key, value) in dictionaryNode)
         {
-            var key = kvp.Key;
-            var value = kvp.Value;
-
             var property = properties.FirstOrDefault(x => x.GetName() == key);
             if (property == null)
                 continue;
 
-            var propertyType = property.PropertyType;
-            var propertyValue = Deserialize(propertyType, value);
-
-            property.SetValue(instance, propertyValue);
+            property.SetValue(instance, Deserialize(property.PropertyType, value));
         }
 
         return instance;
@@ -147,32 +139,11 @@ public class Deserializer
 
         return type switch
         {
-            // nulls are always nulls
             _ when value is null => null,
-
-            // handle TimeSpan
-            _ when type == typeof(TimeSpan) => value != null
-                ? TimeSpan.TryParse(value.ToString(), out var result)
-                    ? result
-                    : null
-                : null,
-
-            // handle Uri
-            _ when type == typeof(Uri) => value != null
-                ? new Uri(value.ToString())
-                : null,
-
-            // handle Guid
-            _ when type == typeof(Guid) => value != null
-                ? Guid.TryParse(value.ToString(), out var result)
-                    ? result
-                    : null
-                : null,
-
-            // handle other types via TypeConverter
-            _ when TypeDescriptor.GetConverter(type).CanConvertFrom(value.GetType()) =>
-                TypeDescriptor.GetConverter(type).ConvertFrom(value),
-
+            _ when type == typeof(TimeSpan) => TimeSpan.TryParse(value.ToString(), out var result) ? result : null,
+            _ when type == typeof(Uri) => new Uri(value.ToString()),
+            _ when type == typeof(Guid) => Guid.TryParse(value.ToString(), out var result) ? result : null,
+            _ when TypeDescriptor.GetConverter(type).CanConvertFrom(value.GetType()) => TypeDescriptor.GetConverter(type).ConvertFrom(value),
             _ => Convert.ChangeType(value, type)
         };
     }

@@ -1,9 +1,9 @@
-﻿using PlistSerializer.Core.Extensions;
+using PlistSerializer.Core.Extensions;
 
 namespace PlistSerializer.Core.Nodes;
 
 /// <summary>
-/// Represents a UID value from a Plist
+/// A plist UID, which keyed archives use to reference objects.
 /// </summary>
 public class UidNode : PNode<ulong>
 {
@@ -20,21 +20,20 @@ public class UidNode : PNode<ulong>
             _ => 3
         };
 
-    /// <summary>
-    /// Gets or sets the value of this element.
-    /// </summary>
-    /// <value>The value of this element.</value>
+    /// <inheritdoc/>
     public sealed override ulong Value { get; set; }
 
     /// <summary>
-    /// Create a new UID node.
+    /// Initializes a new instance of the <see cref="UidNode"/> class.
     /// </summary>
-    public UidNode() { }
+    public UidNode()
+    {
+    }
 
     /// <summary>
-    ///	Create a new UID node.
+    /// Initializes a new instance of the <see cref="UidNode"/> class with a value.
     /// </summary>
-    /// <param name="value"></param>
+    /// <param name="value">The value of the node.</param>
     public UidNode(ulong value)
         => Value = value;
 

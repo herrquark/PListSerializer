@@ -1,65 +1,48 @@
-﻿using System.Buffers.Binary;
+using System.Buffers.Binary;
 using PlistSerializer.Core.Extensions;
 using PlistSerializer.Core.Nodes;
 
 namespace PlistSerializer.Core.Internal;
 
-/// <summary>
-/// A class, used to write a <see cref="PNode"/>  binary formated to a stream
-/// </summary>
 internal class BinaryFormatWriter
 {
-    /// <summary>
-    /// The Header (bplist00)
-    /// </summary>
-    private static readonly byte[] _header = [ 0x62, 0x70, 0x6c, 0x69, 0x73, 0x74, 0x30, 0x30 ];
+    // "bplist00"
+    private static readonly byte[] Header = [0x62, 0x70, 0x6c, 0x69, 0x73, 0x74, 0x30, 0x30];
 
     private readonly Dictionary<byte, Dictionary<PNode, int>> _uniqueElements = [];
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BinaryFormatWriter"/> class.
-    /// </summary>
-    internal BinaryFormatWriter()
-    {
-    }
-
-    /// <summary>
-    /// Writers a <see cref="PNode"/> to the specified stream.
-    /// </summary>
-    /// <param name="stream">The stream.</param>
-    /// <param name="node">The Plist node.</param>
     public void Write(Stream stream, PNode node)
     {
-        stream.Write(_header, 0, _header.Length);
+        stream.Write(Header, 0, Header.Length);
 
         var offsets = new List<int>();
-        int nodeCount = GetNodeCount(node);
+        var nodeCount = GetNodeCount(node);
 
-        byte nodeIndexSize;
-        if (nodeCount <= byte.MaxValue) nodeIndexSize = sizeof(byte);
-        else if (nodeCount <= short.MaxValue) nodeIndexSize = sizeof(short);
-        else nodeIndexSize = sizeof(int);
+        byte nodeIndexSize = nodeCount switch
+        {
+            <= byte.MaxValue => sizeof(byte),
+            <= short.MaxValue => sizeof(short),
+            _ => sizeof(int)
+        };
 
-        int topOffestIdx = WriteInternal(stream, nodeIndexSize, offsets, node);
+        var topOffsetIndex = WriteInternal(stream, nodeIndexSize, offsets, node);
         nodeCount = offsets.Count;
 
-        int offsetTableOffset = (int) stream.Position;
+        var offsetTableOffset = (int)stream.Position;
 
+        byte offsetSize = offsetTableOffset switch
+        {
+            <= byte.MaxValue => sizeof(byte),
+            <= short.MaxValue => sizeof(short),
+            _ => sizeof(int)
+        };
 
-        byte offsetSize;
-        if (offsetTableOffset <= byte.MaxValue)
-            offsetSize = sizeof(byte);
-        else if (offsetTableOffset <= short.MaxValue)
-            offsetSize = sizeof(short);
-        else
-            offsetSize = sizeof(int);
-
-        for (int i = 0; i < offsets.Count; i++)
+        for (var i = 0; i < offsets.Count; i++)
         {
             byte[] buf = offsetSize switch
             {
-                1 => [ (byte) offsets[i] ],
-                2 => ((short) offsets[i]).GetBytes(),
+                1 => [(byte)offsets[i]],
+                2 => ((short)offsets[i]).GetBytes(),
                 4 => offsets[i].GetBytes(),
                 _ => null
             };
@@ -67,28 +50,21 @@ internal class BinaryFormatWriter
             stream.Write(buf, 0, buf.Length);
         }
 
-        var header = new byte[32];
-        header[6] = offsetSize;
-        header[7] = nodeIndexSize;
+        var trailer = new byte[32];
+        trailer[6] = offsetSize;
+        trailer[7] = nodeIndexSize;
 
-        nodeCount.GetBytes().CopyTo(header, 12);
-        topOffestIdx.GetBytes().CopyTo(header, 20);
-        offsetTableOffset.GetBytes().CopyTo(header, 28);
+        nodeCount.GetBytes().CopyTo(trailer, 12);
+        topOffsetIndex.GetBytes().CopyTo(trailer, 20);
+        offsetTableOffset.GetBytes().CopyTo(trailer, 28);
 
-        stream.Write(header, 0, header.Length);
+        stream.Write(trailer, 0, trailer.Length);
     }
 
-    /// <summary>
-    /// Writers a <see cref="PNode"/> to the current stream position
-    /// </summary>
-    /// <param name="stream">The stream.</param>
-    /// <param name="nodeIndexSize">The node index size.</param>
-    /// <param name="offsets">Node offsets.</param>
-    /// <param name="node">The Plist node.</param>
-    /// <returns>The Idx of the written node</returns>
-    internal int WriteInternal(Stream stream, byte nodeIndexSize, List<int> offsets, PNode node)
+    // returns the index of the written node
+    private int WriteInternal(Stream stream, byte nodeIndexSize, List<int> offsets, PNode node)
     {
-        int elementIdx = offsets.Count;
+        var nodeIndex = offsets.Count;
         if (node.IsBinaryUnique && node is IEquatable<PNode>)
         {
             if (!_uniqueElements.ContainsKey(node.BinaryTag))
@@ -97,43 +73,43 @@ internal class BinaryFormatWriter
             if (_uniqueElements[node.BinaryTag].ContainsKey(node))
             {
                 if (node is BooleanNode)
-                    elementIdx = _uniqueElements[node.BinaryTag][node];
+                    nodeIndex = _uniqueElements[node.BinaryTag][node];
                 else
                     return _uniqueElements[node.BinaryTag][node];
             }
             else
             {
-                _uniqueElements[node.BinaryTag][node] = elementIdx;
+                _uniqueElements[node.BinaryTag][node] = nodeIndex;
             }
         }
 
-        int offset = (int) stream.Position;
+        var offset = (int)stream.Position;
         offsets.Add(offset);
-        int len = node.BinaryLength;
-        var typeCode = (byte) (node.BinaryTag << 4 | (len < 0x0F ? len : 0x0F));
+        var length = node.BinaryLength;
+        var typeCode = (byte)(node.BinaryTag << 4 | (length < 0x0F ? length : 0x0F));
         stream.WriteByte(typeCode);
-        if (len >= 0x0F)
+        if (length >= 0x0F)
         {
-            var extLen = NodeFactory.CreateLengthElement(len);
-            var binaryTag = (byte) (extLen.BinaryTag << 4 | extLen.BinaryLength);
-            stream.WriteByte(binaryTag);
-            extLen.WriteBinary(stream);
+            var lengthNode = NodeFactory.CreateLengthElement(length);
+            var lengthTypeCode = (byte)(lengthNode.BinaryTag << 4 | lengthNode.BinaryLength);
+            stream.WriteByte(lengthTypeCode);
+            lengthNode.WriteBinary(stream);
         }
 
         if (node is ArrayNode arrayNode)
         {
             WriteInternal(stream, nodeIndexSize, offsets, arrayNode);
-            return elementIdx;
+            return nodeIndex;
         }
 
         if (node is DictionaryNode dictionaryNode)
         {
             WriteInternal(stream, nodeIndexSize, offsets, dictionaryNode);
-            return elementIdx;
+            return nodeIndex;
         }
 
         node.WriteBinary(stream);
-        return elementIdx;
+        return nodeIndex;
     }
 
     private void WriteInternal(Stream stream, byte nodeIndexSize, List<int> offsets, ArrayNode array)
@@ -142,10 +118,10 @@ internal class BinaryFormatWriter
         var streamPos = stream.Position;
 
         stream.Write(nodes, 0, nodes.Length);
-        for (int i = 0; i < array.Count; i++)
+        for (var i = 0; i < array.Count; i++)
         {
-            int elementIdx = WriteInternal(stream, nodeIndexSize, offsets, array[i]);
-            FormatIdx(elementIdx, nodeIndexSize).CopyTo(nodes, nodeIndexSize * i);
+            var nodeIndex = WriteInternal(stream, nodeIndexSize, offsets, array[i]);
+            FormatIndex(nodeIndex, nodeIndexSize).CopyTo(nodes, nodeIndexSize * i);
         }
 
         stream.Seek(streamPos, SeekOrigin.Begin);
@@ -157,21 +133,21 @@ internal class BinaryFormatWriter
     {
         var keys = new byte[nodeIndexSize * dictionary.Count];
         var values = new byte[nodeIndexSize * dictionary.Count];
-        long streamPos = stream.Position;
+        var streamPos = stream.Position;
         stream.Write(keys, 0, keys.Length);
         stream.Write(values, 0, values.Length);
 
-        KeyValuePair<string, PNode>[] elems = dictionary.ToArray();
+        var entries = dictionary.ToArray();
 
-        for (int i = 0; i < dictionary.Count; i++)
+        for (var i = 0; i < dictionary.Count; i++)
         {
-            int elementIdx = WriteInternal(stream, nodeIndexSize, offsets, NodeFactory.CreateKeyElement(elems[i].Key));
-            FormatIdx(elementIdx, nodeIndexSize).CopyTo(keys, nodeIndexSize * i);
+            var nodeIndex = WriteInternal(stream, nodeIndexSize, offsets, NodeFactory.CreateKeyElement(entries[i].Key));
+            FormatIndex(nodeIndex, nodeIndexSize).CopyTo(keys, nodeIndexSize * i);
         }
-        for (int i = 0; i < dictionary.Count; i++)
+        for (var i = 0; i < dictionary.Count; i++)
         {
-            int elementIdx = WriteInternal(stream, nodeIndexSize, offsets, elems[i].Value);
-            FormatIdx(elementIdx, nodeIndexSize).CopyTo(values, nodeIndexSize * i);
+            var nodeIndex = WriteInternal(stream, nodeIndexSize, offsets, entries[i].Value);
+            FormatIndex(nodeIndex, nodeIndexSize).CopyTo(values, nodeIndexSize * i);
         }
 
         stream.Seek(streamPos, SeekOrigin.Begin);
@@ -183,9 +159,8 @@ internal class BinaryFormatWriter
     private static int GetNodeCount(PNode node)
     {
         if (node == null)
-            throw new ArgumentNullException("node");
+            throw new ArgumentNullException(nameof(node));
 
-        // special case: array
         if (node is ArrayNode array)
         {
             var count = 1;
@@ -196,7 +171,6 @@ internal class BinaryFormatWriter
             return count;
         }
 
-        // special case: dictionary
         if (node is DictionaryNode dictionary)
         {
             var count = 1;
@@ -208,27 +182,20 @@ internal class BinaryFormatWriter
             return count;
         }
 
-        // normal case
         return 1;
     }
 
-    /// <summary>
-    /// Formats a node index based on the size.
-    /// </summary>
-    /// <param name="index">The index.</param>
-    /// <param name="nodeIndexSize">The node index size.</param>
-    /// <returns>The formated idx.</returns>
-    private static byte[] FormatIdx(int index, byte nodeIndexSize)
+    private static byte[] FormatIndex(int index, byte nodeIndexSize)
     {
         var buf = new byte[nodeIndexSize];
 
         switch (nodeIndexSize)
         {
             case 1:
-                buf[0] = (byte) index;
+                buf[0] = (byte)index;
                 break;
             case 2:
-                BinaryPrimitives.WriteInt16BigEndian(buf, (short) index);
+                BinaryPrimitives.WriteInt16BigEndian(buf, (short)index);
                 break;
             case 4:
                 BinaryPrimitives.WriteInt32BigEndian(buf, index);

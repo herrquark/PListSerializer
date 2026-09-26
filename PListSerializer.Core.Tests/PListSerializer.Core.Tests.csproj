@@ -32,6 +32,10 @@
         <None Update="Resources\PList5.plist" CopyToOutputDirectory="PreserveNewest" />
         <None Update="Resources\PList6.plist" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
+    <ItemGroup>
+        <EmbeddedResource Include="PListNet\TestFiles\*.plist" />
+        <Compile Remove="PListNet\**" />
+    </ItemGroup>
 
     <ItemGroup>
         <Using Include="Xunit" />

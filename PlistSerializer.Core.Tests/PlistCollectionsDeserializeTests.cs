@@ -8,8 +8,7 @@ public class PlistCollectionsDeserializeTests
     [Fact]
     public void Recursion_Deep_SubclassArray_Test()
     {
-        var byteArray = File.ReadAllBytes(Path.Combine("Resources", "PList4.plist"));
-        var stream = new MemoryStream(byteArray);
+        using var stream = File.OpenRead(Path.Combine("Resources", "Plist4.plist"));
         var node = Plist.Load(stream);
         var res = Deserializer.Deserialize<ClassWithSameTypes>(node);
         Assert.Multiple(() =>
@@ -38,8 +37,7 @@ public class PlistCollectionsDeserializeTests
     [Fact]
     public void Recursion_Deep_SubclassDictionaryAndArray_Test()
     {
-        var byteArray = File.ReadAllBytes(Path.Combine("Resources", "PList5.plist"));
-        var stream = new MemoryStream(byteArray);
+        using var stream = File.OpenRead(Path.Combine("Resources", "Plist5.plist"));
         var node = Plist.Load(stream);
         var root = Deserializer.Deserialize<ClassWithDictionaryAndArraySameType>(node);
         Assert.NotNull(root.DictionaryArrays);
@@ -89,8 +87,7 @@ public class PlistCollectionsDeserializeTests
     [Fact]
     public void Recursion_Deep_SubclassArray_WithEmpty_Test()
     {
-        var byteArray = File.ReadAllBytes(Path.Combine("Resources", "PList6.plist"));
-        var stream = new MemoryStream(byteArray);
+        using var stream = File.OpenRead(Path.Combine("Resources", "Plist6.plist"));
         var node = Plist.Load(stream);
         var res = Deserializer.Deserialize<ClassWithSameTypes>(node);
         Assert.NotNull(res.ArraySameType);

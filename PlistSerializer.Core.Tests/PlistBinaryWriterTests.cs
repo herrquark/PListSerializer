@@ -2,12 +2,12 @@ using PlistSerializer.Core.Nodes;
 
 namespace PlistSerializer.Core.Tests;
 
-public class BinaryWriterTests
+public class PlistBinaryWriterTests
 {
     [Fact]
     public void Save_BinaryRoundTrip_Test()
     {
-        using var stream = TestFileHelper.GetTestFileStream("TestFiles/asdf-Info.plist");
+        using var stream = File.OpenRead(Path.Combine("Resources", "asdf-Info.plist"));
         var node = Plist.Load(stream);
 
         using var outStream = new MemoryStream();

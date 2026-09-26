@@ -95,8 +95,7 @@ public class PlistDeserializerTests
     [Fact]
     public void Deserialize_Effect_Test()
     {
-        var byteArray = File.ReadAllBytes(Path.Combine("Resources", "PList2.plist"));
-        var stream = new MemoryStream(byteArray);
+        using var stream = File.OpenRead(Path.Combine("Resources", "Plist2.plist"));
         var node = Plist.Load(stream);
         var r = Deserializer.Deserialize<RootPlist>(node);
 
@@ -133,8 +132,7 @@ public class PlistDeserializerTests
     [Fact]
     public void Serialize_EffectsInfo_Test()
     {
-        var byteArray = File.ReadAllBytes(Path.Combine("Resources", "PList3.plist"));
-        var stream = new MemoryStream(byteArray);
+        using var stream = File.OpenRead(Path.Combine("Resources", "Plist3.plist"));
         var node = Plist.Load(stream);
         var r = Deserializer.Deserialize<EffectsPlist>(node);
 

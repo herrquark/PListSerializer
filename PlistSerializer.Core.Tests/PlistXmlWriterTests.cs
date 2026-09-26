@@ -3,12 +3,12 @@ using PlistSerializer.Core.Nodes;
 
 namespace PlistSerializer.Core.Tests;
 
-public class XmlWriterTests
+public class PlistXmlWriterTests
 {
     [Fact]
     public void Save_XmlRoundTrip_Test()
     {
-        using var stream = TestFileHelper.GetTestFileStream("TestFiles/utf8-Info.plist");
+        using var stream = File.OpenRead(Path.Combine("Resources", "utf8-Info.plist"));
 
         var node = Plist.Load(stream);
 
@@ -65,7 +65,7 @@ public class XmlWriterTests
     [Fact]
     public void Save_XmlBooleanWhitespace_Test()
     {
-        using var stream = TestFileHelper.GetTestFileStream("TestFiles/github-20.plist");
+        using var stream = File.OpenRead(Path.Combine("Resources", "github-20.plist"));
 
         // read in the source file and reset the stream so we can parse from it
         using var plistReader = new StreamReader(stream, Encoding.Default, true, 2048, true);
@@ -130,15 +130,15 @@ public class XmlWriterTests
     }
 
     [Theory]
-    [InlineData("TestFiles/asdf-Info.plist")]
-    [InlineData("TestFiles/unity.xml.plist")]
-    [InlineData("TestFiles/uid-test.xml.plist")]
-    [InlineData("TestFiles/utf8-Info.plist")]
-    [InlineData("TestFiles/github-7-xml.plist")]
-    [InlineData("TestFiles/github-15-large-xml.plist")]
+    [InlineData("asdf-Info.plist")]
+    [InlineData("unity.xml.plist")]
+    [InlineData("uid-test.xml.plist")]
+    [InlineData("utf8-Info.plist")]
+    [InlineData("github-7-xml.plist")]
+    [InlineData("github-15-large-xml.plist")]
     public void ToString_SourceXml_Test(string fileName)
     {
-        using var stream = TestFileHelper.GetTestFileStream(fileName);
+        using var stream = File.OpenRead(Path.Combine("Resources", fileName));
 
         // read in the source file and reset the stream so we can parse from it
         using var plistReader = new StreamReader(stream, Encoding.Default, true, 2048, true);

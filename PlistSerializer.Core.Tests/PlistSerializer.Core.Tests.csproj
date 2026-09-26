@@ -25,15 +25,7 @@
         <PackageReference Include="xunit.v3" Version="3.2.1" />
     </ItemGroup>
     <ItemGroup>
-        <None Update="Resources\PList1.plist" CopyToOutputDirectory="PreserveNewest" />
-        <None Update="Resources\PList2.plist" CopyToOutputDirectory="PreserveNewest" />
-        <None Update="Resources\PList3.plist" CopyToOutputDirectory="PreserveNewest" />
-        <None Update="Resources\PList4.plist" CopyToOutputDirectory="PreserveNewest" />
-        <None Update="Resources\PList5.plist" CopyToOutputDirectory="PreserveNewest" />
-        <None Update="Resources\PList6.plist" CopyToOutputDirectory="PreserveNewest" />
-    </ItemGroup>
-    <ItemGroup>
-        <EmbeddedResource Include="PListNet\TestFiles\*.plist" />
+        <None Update="Resources\*.plist" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
     <ItemGroup>

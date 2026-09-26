@@ -2,12 +2,12 @@ using PlistSerializer.Core.Nodes;
 
 namespace PlistSerializer.Core.Tests;
 
-public class BinaryReaderTests
+public class PlistBinaryReaderTests
 {
     [Fact]
     public void Load_BinaryDictionary_Test()
     {
-        using var stream = TestFileHelper.GetTestFileStream("TestFiles/asdf-Info-bin.plist");
+        using var stream = File.OpenRead(Path.Combine("Resources", "asdf-Info-bin.plist"));
         var node = Plist.Load(stream);
 
         Assert.NotNull(node);
@@ -21,14 +21,14 @@ public class BinaryReaderTests
     [Fact]
     public void Load_BinaryUidField_Test()
     {
-        using var stream = TestFileHelper.GetTestFileStream("TestFiles/uid-test.plist");
+        using var stream = File.OpenRead(Path.Combine("Resources", "uid-test.plist"));
         Assert.NotNull(Plist.Load(stream));
     }
 
     [Fact]
     public void Load_BinaryUid_Test()
     {
-        using var stream = TestFileHelper.GetTestFileStream("TestFiles/github-7-binary.plist");
+        using var stream = File.OpenRead(Path.Combine("Resources", "github-7-binary.plist"));
         Assert.NotNull(Plist.Load(stream));
     }
 
@@ -36,7 +36,7 @@ public class BinaryReaderTests
     public void Load_BinaryUidValue_Test()
     {
         // this binary .plist file came from https://bugs.python.org/issue26707
-        using var stream = TestFileHelper.GetTestFileStream("TestFiles/github-7-binary-2.plist");
+        using var stream = File.OpenRead(Path.Combine("Resources", "github-7-binary-2.plist"));
         var root = Plist.Load(stream) as DictionaryNode;
 
         Assert.NotNull(root);
@@ -54,21 +54,21 @@ public class BinaryReaderTests
     [Fact]
     public void Load_Binary16BitIntegers_Test()
     {
-        using var stream = TestFileHelper.GetTestFileStream("TestFiles/unity.binary.plist");
+        using var stream = File.OpenRead(Path.Combine("Resources", "unity.binary.plist"));
         Assert.NotNull(Plist.Load(stream));
     }
 
     [Fact]
     public void Load_BinaryGitHubIssue9_Test()
     {
-        using var stream = TestFileHelper.GetTestFileStream("TestFiles/github-9.plist");
+        using var stream = File.OpenRead(Path.Combine("Resources", "github-9.plist"));
         Assert.NotNull(Plist.Load(stream));
     }
 
     [Fact]
     public void Load_BinaryMediumDictionary_Test()
     {
-        using var stream = TestFileHelper.GetTestFileStream("TestFiles/github-15-medium-binary.plist");
+        using var stream = File.OpenRead(Path.Combine("Resources", "github-15-medium-binary.plist"));
         var node = Plist.Load(stream);
 
         var dictNode = node as DictionaryNode;
@@ -79,7 +79,7 @@ public class BinaryReaderTests
     [Fact]
     public void Load_BinaryLargeDictionary_Test()
     {
-        using var stream = TestFileHelper.GetTestFileStream("TestFiles/github-15-large-binary.plist");
+        using var stream = File.OpenRead(Path.Combine("Resources", "github-15-large-binary.plist"));
         var node = Plist.Load(stream);
 
         var dictNode = node as DictionaryNode;

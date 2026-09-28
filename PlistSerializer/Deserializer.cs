@@ -169,6 +169,7 @@ public static class Deserializer
             _ when type == typeof(TimeSpan) => TimeSpan.TryParse(value.ToString(), culture, out var result) ? result : null,
             _ when type == typeof(Uri) => new Uri(value.ToString(), UriKind.RelativeOrAbsolute),
             _ when type == typeof(Guid) => Guid.TryParse(value.ToString(), out var result) ? result : null,
+            _ when type == typeof(DateTimeOffset) && value is DateTime dateTime => new DateTimeOffset(dateTime),
             _ when TypeDescriptor.GetConverter(type).CanConvertFrom(value.GetType()) => TypeDescriptor.GetConverter(type).ConvertFrom(null, culture, value),
             _ => Convert.ChangeType(value, type, culture)
         };

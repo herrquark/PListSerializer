@@ -78,6 +78,24 @@ public class PlistSerializePrimitiveTypesTests
     }
 
     [Fact]
+    public void Serialize_DateTimeOffset_Test()
+    {
+        var source = new DateTimeOffset(2020, 1, 1, 3, 0, 0, TimeSpan.FromHours(3));
+
+        var node = Assert.IsType<DateNode>(Serializer.Serialize(source));
+        var res = Deserializer.Deserialize<DateTimeOffset>(node);
+
+        // a plist date has no offset, so only the moment survives
+        Assert.Multiple(() =>
+        {
+            Assert.Equal(new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc), node.Value);
+            Assert.Equal(source, res);
+            Assert.Equal(TimeSpan.Zero, res.Offset);
+            Assert.Equal(source, Deserializer.Deserialize<DateTimeOffset?>(node));
+        });
+    }
+
+    [Fact]
     public void Serialize_TimeSpan_Test()
     {
         var source = new TimeSpan(1, 2, 3, 4, 5);

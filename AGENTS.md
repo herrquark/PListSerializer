@@ -35,7 +35,7 @@ Both sides key a member by its `[PlistName]`, else its C# name, through `GetName
 
 ### Adding type support
 
-Each side dispatches in one `switch` expression: `Serializer.Serialize` and `Deserializer.Deserialize(Type, PNode)`. Add an arm there, and place it carefully because the first match wins. On both sides the first arm handles nodes, since `ArrayNode` and `DictionaryNode` would otherwise match the collection arms. `string` and `byte[]` are both `IEnumerable`, so their serializer arms come before the enumerable arm. In the deserializer, `IsArray` comes before the scalar arms so that `byte[]` takes `<data>`. Scalars without their own serializer arm (`short`, `uint`, `char`, and so on) are written as `<string>` and parsed back by `ConvertToType`, which unwraps `Nullable<T>`, handles `TimeSpan`/`Uri`/`Guid` specially, then tries `TypeConverter` and finally `Convert.ChangeType`.
+Each side dispatches in one `switch` expression: `Serializer.Serialize` and `Deserializer.Deserialize(Type, PNode)`. Add an arm there, and place it carefully because the first match wins. On both sides the first arm handles nodes, since `ArrayNode` and `DictionaryNode` would otherwise match the collection arms. `string` and `byte[]` are both `IEnumerable`, so their serializer arms come before the enumerable arm. In the deserializer, `IsArray` comes before the scalar arms so that `byte[]` takes `<data>`. Scalars without their own serializer arm (`short`, `uint`, `char`, and so on) are written as `<string>` and parsed back by `ConvertToType`, which unwraps `Nullable<T>`, handles `TimeSpan`/`Uri`/`Guid` and a date into `DateTimeOffset` specially, then tries `TypeConverter` and finally `Convert.ChangeType`.
 
 ### Type resolvers
 

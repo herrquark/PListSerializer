@@ -32,6 +32,7 @@ public static class Serializer
             double d => new RealNode(d),
             decimal dec => new RealNode(decimal.ToDouble(dec)),
             DateTime dt => new DateNode(dt),
+            DateTimeOffset dto => new DateNode(dto.UtcDateTime),
             Enum en => new StringNode(en.ToString()),
             Guid g => new StringNode(g.ToString()),
             TimeSpan ts => new StringNode(ts.ToString()),

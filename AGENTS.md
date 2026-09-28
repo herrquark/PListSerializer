@@ -27,7 +27,7 @@ The two classes were written separately and share only the reflection helpers in
 |---|---|---|
 | Members | public properties with a setter, and public fields | public properties with a setter; fields are never set |
 | Omitted | nulls (members, dictionary values, collection items) and values equal to `[DefaultValue]`; `0` and `false` are still written | a missing key leaves the member at its initial value |
-| Collections | any `IDictionary`, `IEnumerable<KeyValuePair<string, object>>` or `IEnumerable` | `T[]`, `List<T>`, `HashSet<T>`, `Dictionary<string, T>` and the interfaces listed in `TypeExtensions`, which get the concrete type; any other collection type comes back `null` from an array node and empty from a dict node, and a non-string dictionary key throws |
+| Collections | any `IDictionary`, `IEnumerable<KeyValuePair<string, object>>` or `IEnumerable` | `T[]`, `List<T>`, `HashSet<T>`, `Dictionary<string, T>` and the interfaces listed in `TypeExtensions`, which get the concrete type, and an `object` target gets a dict as `Dictionary<string, object>`, an array as `List<object>` and data as `byte[]`; any other collection type comes back `null` from an array node and empty from a dict node, and a non-string dictionary key throws |
 | Nodes | a `PNode` value is written as is, so a model can carry a `UidNode` | a member typed as `PNode` or a node class receives the node itself, or `null` if the node has another type; a `UidNode` converts to integer members like an integer |
 | Wrong input | — | inconsistent by type: a mismatched node or unparseable value yields `null`, a default or an exception, and a top-level value type throws `NullReferenceException`; test the exact case you depend on |
 

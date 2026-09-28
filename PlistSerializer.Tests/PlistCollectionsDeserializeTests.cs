@@ -134,6 +134,30 @@ public class PlistCollectionsDeserializeTests
     }
 
     [Fact]
+    public void Deserialize_ObjectValues_Test()
+    {
+        byte[] data = [1, 2];
+        var node = Serializer.Serialize(new Dictionary<string, object>
+        {
+            ["dict"] = new Dictionary<string, object> { ["a"] = 1L },
+            ["list"] = new List<object> { "b", new List<object> { true } },
+            ["data"] = data,
+            ["real"] = 1.5,
+        });
+
+        var res = Deserializer.Deserialize<Dictionary<string, object>>(node);
+
+        Assert.Multiple(() =>
+        {
+            Assert.Equal(new Dictionary<string, object> { ["a"] = 1L }, Assert.IsType<Dictionary<string, object>>(res["dict"]));
+            Assert.Equal(new List<object> { "b", new List<object> { true } }, Assert.IsType<List<object>>(res["list"]));
+            Assert.Equal(data, Assert.IsType<byte[]>(res["data"]));
+            Assert.Equal(1.5, Assert.IsType<double>(res["real"]));
+            Assert.Equal(Plist.ToString(node), Plist.ToString(Serializer.Serialize(res)));
+        });
+    }
+
+    [Fact]
     public void Nullable_Test()
     {
         // test nullable properties

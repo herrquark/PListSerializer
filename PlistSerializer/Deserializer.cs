@@ -27,6 +27,8 @@ public static class Deserializer
             // a node-typed target takes the node itself
             _ when typeof(PNode).IsAssignableFrom(type) => type.IsInstanceOfType(node) ? node : null,
 
+            _ when type == typeof(object) => DeserializeUntyped(node),
+
             _ when type.IsDictionary() => DeserializeDictionary(type, node),
             _ when type.IsArray => DeserializeArray(type, node),
             _ when type.IsList() => DeserializeList(type, node),
@@ -41,6 +43,22 @@ public static class Deserializer
             _ when node is UidNode uidNode => ConvertToType(uidNode.Value, type),
 
             _ => DeserializeObject(type, node)
+        };
+
+    // an object target takes the value that the serializer writes back to the same node
+    private static object DeserializeUntyped(PNode node)
+        => node switch
+        {
+            DictionaryNode => DeserializeDictionary(typeof(Dictionary<string, object>), node),
+            ArrayNode => DeserializeList(typeof(List<object>), node),
+            DataNode dataNode => dataNode.Value,
+            IntegerNode integerNode => integerNode.Value,
+            RealNode realNode => realNode.Value,
+            StringNode stringNode => stringNode.Value,
+            BooleanNode booleanNode => booleanNode.Value,
+            DateNode dateNode => dateNode.Value,
+            UidNode uidNode => uidNode.Value,
+            _ => null
         };
 
     private static object DeserializeDictionary(Type type, PNode node)

@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using PlistSerializer.Nodes;
+﻿using PlistSerializer.Nodes;
 using PlistSerializer.Tests.TestModels;
 
 namespace PlistSerializer.Tests;
@@ -142,10 +141,24 @@ public class PlistCollectionsSerializeTests
             ]
         };
 
-        var res = Serializer.Serialize(arr) as ArrayNode;
-        Assert.NotNull(res);
-        Assert.Equal(3, res.Count);
+        var res = Assert.IsType<ArrayNode>(Serializer.Serialize(arr));
+        Assert.Equal(arr.Length, res.Count);
 
-        Console.WriteLine(Plist.ToString(res, writePlistMeta: false));
+        Assert.All(res, (row, rowIndex) =>
+        {
+            var items = Assert.IsType<ArrayNode>(row);
+            Assert.Equal(arr[rowIndex].Length, items.Count);
+
+            Assert.All(items, (item, itemIndex) =>
+            {
+                var node = Assert.IsType<DictionaryNode>(item);
+                var expected = arr[rowIndex][itemIndex];
+
+                Assert.Multiple(
+                    () => Assert.Equal(2, node.Count),
+                    () => Assert.Equal(expected.Id, Assert.IsType<IntegerNode>(Assert.Contains(nameof(SimpleClass.Id), node)).Value),
+                    () => Assert.Equal(expected.Name, Assert.IsType<StringNode>(Assert.Contains(nameof(SimpleClass.Name), node)).Value));
+            }, throwIfEmpty: true);
+        }, throwIfEmpty: true);
     }
 }

@@ -20,29 +20,18 @@ public class PlistXmlWriterTests
         outStream.Seek(0, SeekOrigin.Begin);
         var newNode = Plist.Load(outStream);
 
-        // compare
-        Assert.Equal(node.GetType().Name, newNode.GetType().Name);
-
-        var oldDict = node as DictionaryNode;
-        var newDict = newNode as DictionaryNode;
-
-        Assert.NotNull(oldDict);
-        Assert.NotNull(newDict);
+        var oldDict = Assert.IsType<DictionaryNode>(node);
+        var newDict = Assert.IsType<DictionaryNode>(newNode);
         Assert.Equal(oldDict.Count, newDict.Count);
 
-        foreach (var key in oldDict.Keys)
+        Assert.All(oldDict, pair =>
         {
-            Assert.Contains(key, newDict);
+            var newValue = Assert.Contains(pair.Key, newDict);
 
-            var oldValue = oldDict[key];
-            var newValue = newDict[key];
-
-            Assert.Multiple(() =>
-            {
-                Assert.Equal(oldValue.GetType().Name, newValue.GetType().Name);
-                Assert.Equal(oldValue, newValue);
-            });
-        }
+            Assert.Multiple(
+                () => Assert.IsType(pair.Value.GetType(), newValue),
+                () => Assert.Equal(pair.Value, newValue));
+        }, throwIfEmpty: true);
     }
 
     [Fact]

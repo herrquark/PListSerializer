@@ -9,7 +9,7 @@ PlistSerializer reads and writes Apple property lists and maps them to .NET obje
 ## Build and test
 
 - `dotnet test` from the repo root builds both projects and runs the suite. It is the only gate, because the GitHub workflow is a placeholder that builds nothing.
-- To narrow a run, pass Microsoft Testing Platform flags after `--`: `dotnet test -- --filter-class "*PlistConcurrencyTests"` or `-- --filter-method "*Nullable_Test"`. The VSTest-style `dotnet test --filter` is silently ignored here and runs every test.
+- `global.json` selects Microsoft Testing Platform for .NET 10+ SDKs. To narrow a run, use `dotnet test --filter-class "*PlistConcurrencyTests"` or `dotnet test --filter-method "*Nullable_Test"`. xUnit v3 4.x also supports VSTest-style expressions, such as `dotnet test --filter "FullyQualifiedName~PlistConcurrencyTests"`.
 - Every build packs `PlistSerializer/bin/<Configuration>/PlistSerializer.Quark.<version>.nupkg` (`GeneratePackageOnBuild`). That file is expected output.
 
 ## Conventions

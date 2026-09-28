@@ -1,5 +1,6 @@
 using System.Collections;
 using System.ComponentModel;
+using System.Globalization;
 using System.Reflection;
 using PlistSerializer.Extensions;
 using PlistSerializer.Nodes;
@@ -141,14 +142,17 @@ public static class Deserializer
     {
         type = Nullable.GetUnderlyingType(type) ?? type;
 
+        // plist values do not depend on the culture, so neither does parsing them
+        var culture = CultureInfo.InvariantCulture;
+
         return type switch
         {
             _ when value is null => null,
-            _ when type == typeof(TimeSpan) => TimeSpan.TryParse(value.ToString(), out var result) ? result : null,
+            _ when type == typeof(TimeSpan) => TimeSpan.TryParse(value.ToString(), culture, out var result) ? result : null,
             _ when type == typeof(Uri) => new Uri(value.ToString(), UriKind.RelativeOrAbsolute),
             _ when type == typeof(Guid) => Guid.TryParse(value.ToString(), out var result) ? result : null,
-            _ when TypeDescriptor.GetConverter(type).CanConvertFrom(value.GetType()) => TypeDescriptor.GetConverter(type).ConvertFrom(value),
-            _ => Convert.ChangeType(value, type)
+            _ when TypeDescriptor.GetConverter(type).CanConvertFrom(value.GetType()) => TypeDescriptor.GetConverter(type).ConvertFrom(null, culture, value),
+            _ => Convert.ChangeType(value, type, culture)
         };
     }
 }

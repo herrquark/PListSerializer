@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.ComponentModel;
+using System.Globalization;
 using System.Reflection;
 using PlistSerializer.Extensions;
 using PlistSerializer.Nodes;
@@ -35,7 +36,7 @@ public static class Serializer
             Guid g => new StringNode(g.ToString()),
             TimeSpan ts => new StringNode(ts.ToString()),
             Uri uri => new StringNode(uri.OriginalString),
-            _ when obj.GetType().IsPrimitive => new StringNode(obj.ToString()),
+            _ when obj.GetType().IsPrimitive => new StringNode(Convert.ToString(obj, CultureInfo.InvariantCulture)),
             byte[] bytes => new DataNode(bytes),
             IDictionary dict => SerializeDictionary(dict),
             IEnumerable<KeyValuePair<string, object>> dict => SerializeDictionary(dict),

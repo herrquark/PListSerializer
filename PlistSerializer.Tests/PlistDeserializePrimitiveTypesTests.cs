@@ -1,4 +1,5 @@
-﻿using PlistSerializer.Nodes;
+﻿using System.Globalization;
+using PlistSerializer.Nodes;
 
 namespace PlistSerializer.Tests;
 
@@ -81,6 +82,23 @@ public class PlistDeserializePrimitiveTypesTests
         var res = Deserializer.Deserialize<Uri>(node);
         Assert.IsType<Uri>(res);
         Assert.Equal(source, res);
+    }
+
+    [Fact]
+    public void Deserialize_DoubleFromString_Test()
+    {
+        // the German culture reads the point as a group separator
+        var culture = CultureInfo.CurrentCulture;
+
+        try
+        {
+            CultureInfo.CurrentCulture = new CultureInfo("de-DE");
+            Assert.Equal(1.5, Deserializer.Deserialize<double>(new StringNode("1.5")));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = culture;
+        }
     }
 
     [Fact]

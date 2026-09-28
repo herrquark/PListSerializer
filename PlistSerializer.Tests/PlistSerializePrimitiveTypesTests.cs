@@ -1,4 +1,5 @@
-﻿using PlistSerializer.Nodes;
+﻿using System.Globalization;
+using PlistSerializer.Nodes;
 
 namespace PlistSerializer.Tests;
 
@@ -104,6 +105,23 @@ public class PlistSerializePrimitiveTypesTests
             Assert.Equal(source, node.Value);
             Assert.Equal(uri, Deserializer.Deserialize<Uri>(node));
         });
+    }
+
+    [Fact]
+    public void Serialize_NegativeShort_Test()
+    {
+        // the Swedish culture writes a negative sign as U+2212, which other cultures do not read
+        var culture = CultureInfo.CurrentCulture;
+
+        try
+        {
+            CultureInfo.CurrentCulture = new CultureInfo("sv-SE");
+            Assert.Equal("-5", Assert.IsType<StringNode>(Serializer.Serialize((short)-5)).Value);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = culture;
+        }
     }
 
     [Fact]

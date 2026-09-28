@@ -11,13 +11,19 @@ public class UidNode : PNode<ulong>
 
     internal override byte BinaryTag => 8;
 
-    internal override int BinaryLength
+    // the marker's low nibble is the byte count minus one, unlike an integer's power of two
+    internal override int BinaryLength => ByteCount - 1;
+
+    // Apple and Python write equal UIDs as separate objects
+    internal override bool IsBinaryUnique => false;
+
+    private int ByteCount
         => Value switch
         {
-            <= byte.MaxValue => 0,
-            <= ushort.MaxValue => 1,
-            <= uint.MaxValue => 2,
-            _ => 3
+            <= byte.MaxValue => 1,
+            <= ushort.MaxValue => 2,
+            <= uint.MaxValue => 4,
+            _ => 8
         };
 
     /// <inheritdoc/>
@@ -42,19 +48,21 @@ public class UidNode : PNode<ulong>
 
     internal override void ReadBinary(Stream stream, int nodeLength)
     {
-        var buf = new byte[1 << nodeLength];
+        var buf = new byte[nodeLength + 1];
 
         if (stream.Read(buf, 0, buf.Length) != buf.Length)
             throw new PlistFormatException();
 
-        Value = nodeLength switch
-        {
-            0 => buf[0],
-            1 => buf.ToUInt16(),
-            2 => buf.ToUInt32(),
-            3 => buf.ToUInt64(),
-            _ => throw new PlistFormatException("Int > 64Bit"),
-        };
+        // payloads may be up to 16 bytes wide, but only the last 8 may be non-zero
+        var start = Math.Max(0, buf.Length - sizeof(ulong));
+        if (buf.Take(start).Any(b => b != 0))
+            throw new PlistFormatException("UID > 64Bit");
+
+        ulong value = 0;
+        for (var i = start; i < buf.Length; i++)
+            value = value << 8 | buf[i];
+
+        Value = value;
     }
 
     internal override string ToXmlString()
@@ -62,13 +70,12 @@ public class UidNode : PNode<ulong>
 
     internal override void WriteBinary(Stream stream)
     {
-        byte[] buf = BinaryLength switch
+        byte[] buf = ByteCount switch
         {
-            0 => [(byte)Value],
-            1 => ((ushort)Value).GetBytes(),
-            2 => ((uint)Value).GetBytes(),
-            3 => Value.GetBytes(),
-            _ => throw new Exception($"Unexpected length: {BinaryLength}."),
+            1 => [(byte)Value],
+            2 => ((ushort)Value).GetBytes(),
+            4 => ((uint)Value).GetBytes(),
+            _ => Value.GetBytes(),
         };
 
         stream.Write(buf, 0, buf.Length);

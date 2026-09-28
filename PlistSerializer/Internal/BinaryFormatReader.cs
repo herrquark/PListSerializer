@@ -128,7 +128,7 @@ internal class BinaryFormatReader
         // left 4 bits represent the tag, which indicates the node type
         // right 4 bits indicate the length
         //  - if size fits in 4 bits, the number is the length
-        //  - if the bit value is 1111, the following byte will contain information needed to decode length as follows:
+        //  - if the bit value is 1111 and the node type carries a count, the following byte will contain information needed to decode length as follows:
         //      - 4 left bits are 0001
         //      - 4 right bits is the power of 2 required to represent the length
         //      - the following pow(2, x) bytes give us the length (big-endian)
@@ -140,8 +140,8 @@ internal class BinaryFormatReader
         var tag = (byte)((buf[0] >> 4) & 0x0F);
         var length = buf[0] & 0x0F;
 
-        // length fits in 4 bits, return
-        if (length != 0xF)
+        // length fits in 4 bits, or the node type has no count that could spill over
+        if (length != 0xF || !HasCount(tag))
             return new NodeTagAndLength(tag, length);
 
         // read next byte to determine the length (in bytes) of actual length value
@@ -164,6 +164,11 @@ internal class BinaryFormatReader
 
         return new NodeTagAndLength(tag, length);
     }
+
+    // data, strings, arrays, sets and dictionaries; for the other types the nibble is not a count,
+    // so 1111 is a value of its own, such as a fill byte or a 16-byte UID
+    private static bool HasCount(byte tag)
+        => tag is 0x4 or 0x5 or 0x6 or 0x7 or 0xA or 0xB or 0xC or 0xD;
 
     private void ReadInArray(ICollection<PNode> node, int nodeLength, ReaderState readerState)
     {

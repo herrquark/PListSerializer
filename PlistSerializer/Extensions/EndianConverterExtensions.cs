@@ -42,10 +42,10 @@ internal static class EndianConverterExtensions
         ];
 
     public static byte[] GetBytes(this ushort value)
-        => ((int)value).GetBytes();
+        => [(byte)(value >> 8), (byte)value];
 
     public static byte[] GetBytes(this uint value)
-        => ((long)value).GetBytes();
+        => [(byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value];
 
     public static byte[] GetBytes(this ulong value)
         => ((long)value).GetBytes();

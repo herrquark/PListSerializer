@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using PlistSerializer.Nodes;
 
 namespace PlistSerializer.Tests;
@@ -38,5 +39,44 @@ public class PlistBinaryWriterTests
                 Assert.Equal(oldValue, newValue);
             });
         }
+    }
+
+    [Theory]
+    [InlineData(0UL, "8000")]
+    [InlineData(255UL, "80FF")]
+    [InlineData(256UL, "810100")]
+    [InlineData(65535UL, "81FFFF")]
+    [InlineData(65536UL, "8300010000")]
+    [InlineData(4294967295UL, "83FFFFFFFF")]
+    [InlineData(4294967296UL, "870000000100000000")]
+    [InlineData(18446744073709551615UL, "87FFFFFFFFFFFFFFFF")]
+    public void Save_BinaryUid_Test(ulong value, string expected)
+    {
+        using var stream = new MemoryStream();
+        Plist.Save(new UidNode(value), stream, PlistFormat.Binary);
+
+        // the root object sits between the 8-byte header and a 1-byte offset table followed by the 32-byte trailer
+        var bytes = stream.ToArray();
+        stream.Seek(0, SeekOrigin.Begin);
+        var uid = Assert.IsType<UidNode>(Plist.Load(stream));
+
+        Assert.Multiple(() =>
+        {
+            Assert.Equal(expected, Convert.ToHexString(bytes, 8, bytes.Length - 8 - 1 - 32));
+            Assert.Equal(value, uid.Value);
+        });
+    }
+
+    [Fact]
+    public void Save_BinaryEqualUids_Test()
+    {
+        var node = new ArrayNode { new UidNode(7), new UidNode(7), new IntegerNode(7), new IntegerNode(7) };
+
+        using var stream = new MemoryStream();
+        Plist.Save(node, stream, PlistFormat.Binary);
+
+        // the trailer's object count: the array, both UIDs, and the equal integers merged into one
+        var bytes = stream.ToArray();
+        Assert.Equal(4UL, BinaryPrimitives.ReadUInt64BigEndian(bytes.AsSpan(bytes.Length - 24)));
     }
 }

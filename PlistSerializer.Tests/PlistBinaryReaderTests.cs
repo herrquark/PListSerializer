@@ -86,4 +86,64 @@ public class PlistBinaryReaderTests
         Assert.NotNull(dictNode);
         Assert.Equal(32768, dictNode.Keys.Count);
     }
+
+    [Theory]
+    [InlineData("8005", 5UL)]
+    [InlineData("810100", 256UL)]
+    [InlineData("82010000", 65536UL)]
+    [InlineData("8300010000", 65536UL)]
+    [InlineData("83FFFFFFFF", 4294967295UL)]
+    [InlineData("840100000000", 4294967296UL)]
+    [InlineData("870000000000000007", 7UL)]
+    [InlineData("8F00000000000000000000000000000009", 9UL)]
+    [InlineData("8F0000000000000000FFFFFFFFFFFFFFFF", 18446744073709551615UL)]
+    public void Load_BinaryUidWidths_Test(string uid, ulong expected)
+    {
+        using var stream = new MemoryStream(WrapInBinaryPlist(Convert.FromHexString(uid)));
+        var node = Assert.IsType<UidNode>(Plist.Load(stream));
+
+        Assert.Equal(expected, node.Value);
+    }
+
+    [Fact]
+    public void Load_BinaryUidOverflow_Test()
+    {
+        // a 9-byte UID whose leading byte does not fit in 64 bits
+        using var stream = new MemoryStream(WrapInBinaryPlist(Convert.FromHexString("88010000000000000000")));
+
+        Assert.Throws<PlistFormatException>(() => Plist.Load(stream));
+    }
+
+    [Fact]
+    public void Load_BinaryAppleUids_Test()
+    {
+        // written by plutil, which stores UIDs in 1, 2 or 4 bytes and never merges equal ones
+        using var stream = File.OpenRead(Path.Combine("Resources", "uid-widths.plist"));
+        var root = Assert.IsType<DictionaryNode>(Plist.Load(stream));
+        var list = Assert.IsType<ArrayNode>(root["list"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.Equal(1UL, Assert.IsType<UidNode>(root["byte"]).Value);
+            Assert.Equal(256UL, Assert.IsType<UidNode>(root["short"]).Value);
+            Assert.Equal(65536UL, Assert.IsType<UidNode>(root["int"]).Value);
+            Assert.Equal(4294967295UL, Assert.IsType<UidNode>(root["max"]).Value);
+            Assert.Equal(0UL, Assert.IsType<UidNode>(list[0]).Value);
+            Assert.Equal(0UL, Assert.IsType<UidNode>(list[1]).Value);
+            Assert.Equal(0L, Assert.IsType<IntegerNode>(list[2]).Value);
+        });
+    }
+
+    // wraps a single object in the header, a one-entry offset table and the trailer of a binary plist
+    private static byte[] WrapInBinaryPlist(byte[] rootObject)
+    {
+        var header = "bplist00"u8.ToArray();
+        var trailer = new byte[32];
+        trailer[6] = 1; // offset size
+        trailer[7] = 1; // object reference size
+        trailer[15] = 1; // object count
+        trailer[31] = (byte)(header.Length + rootObject.Length); // offset table position
+
+        return [.. header, .. rootObject, (byte)header.Length, .. trailer];
+    }
 }

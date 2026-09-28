@@ -130,7 +130,7 @@ public static class Serializer
         {
             Name = m.GetName(),
             Get = m is PropertyInfo p ? p.GetValue : ((FieldInfo)m).GetValue,
-            DefaultValue = m.GetCustomAttribute<DefaultValueAttribute>(false)?.Value
+            DefaultValue = m.GetCustomAttribute<DefaultValueAttribute>(true)?.Value
         };
 
     private sealed class GetterMember

@@ -80,6 +80,23 @@ public class PlistSerializerTests
     }
 
     [Fact]
+    public void Serialize_OverriddenMembers_Test()
+    {
+        // an override keeps the attributes of its base declaration unless it declares its own
+        var atDefault = Assert.IsType<DictionaryNode>(Serializer.Serialize(new ClassWithOverriddenMembers { Inherited = 7, Renamed = 1 }));
+        var node = Assert.IsType<DictionaryNode>(Serializer.Serialize(new ClassWithOverriddenMembers { Inherited = 3, Renamed = 1 }));
+        var res = Deserializer.Deserialize<ClassWithOverriddenMembers>(node);
+
+        Assert.Multiple(() =>
+        {
+            Assert.Equal(["derived_key"], atDefault.Keys);
+            Assert.Equal(["derived_key", "inherited_key"], node.Keys);
+            Assert.Equal(3, res.Inherited);
+            Assert.Equal(1, res.Renamed);
+        });
+    }
+
+    [Fact]
     public void Serialize_SharedKey_Test()
     {
         var node = new DictionaryNode { ["Key"] = new IntegerNode(1) };

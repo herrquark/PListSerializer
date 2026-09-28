@@ -11,6 +11,14 @@
  - equal UIDs are written as separate binary objects, as Apple and Python write them
  - UIDs are written to XML as `CF$UID` dicts, which Apple reads, instead of an escaped `<uid>` element, and such dicts load as `UidNode`
  - the deserializer converts a `UidNode` to integer members, node-typed members receive the node itself, and the serializer writes node values as they are
+ - binary integers use Apple's widths, where 1, 2 and 4-byte integers are unsigned: values such as 40000 in Apple's files no longer read as negative, and negative numbers are written in 8 bytes, which Apple and Python read correctly
+ - XML dates are written without fractional seconds, which Apple and Python rejected, and in the Gregorian calendar whatever the current culture
+ - binary dates of local and unspecified `DateTime`s are no longer off by their UTC offset
+ - empty `<string/>` and `<key/>` elements load as empty strings
+ - strings containing U+FFFD are no longer corrupted in binary
+ - a binary plist with an object that contains itself throws `PlistFormatException` instead of overflowing the stack
+ - the serializer writes `TimeSpan` and `Uri` as strings instead of empty dicts, and the deserializer reads relative `Uri`s
+ - scalars written as strings are formatted and parsed with the invariant culture
 
 ## PListNet.Quark (merged into PlistSerializer.Quark 2.0.0)
 

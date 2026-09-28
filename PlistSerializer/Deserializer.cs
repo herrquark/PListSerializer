@@ -145,7 +145,7 @@ public static class Deserializer
         {
             _ when value is null => null,
             _ when type == typeof(TimeSpan) => TimeSpan.TryParse(value.ToString(), out var result) ? result : null,
-            _ when type == typeof(Uri) => new Uri(value.ToString()),
+            _ when type == typeof(Uri) => new Uri(value.ToString(), UriKind.RelativeOrAbsolute),
             _ when type == typeof(Guid) => Guid.TryParse(value.ToString(), out var result) ? result : null,
             _ when TypeDescriptor.GetConverter(type).CanConvertFrom(value.GetType()) => TypeDescriptor.GetConverter(type).ConvertFrom(value),
             _ => Convert.ChangeType(value, type)

@@ -33,6 +33,8 @@ public static class Serializer
             DateTime dt => new DateNode(dt),
             Enum en => new StringNode(en.ToString()),
             Guid g => new StringNode(g.ToString()),
+            TimeSpan ts => new StringNode(ts.ToString()),
+            Uri uri => new StringNode(uri.OriginalString),
             _ when obj.GetType().IsPrimitive => new StringNode(obj.ToString()),
             byte[] bytes => new DataNode(bytes),
             IDictionary dict => SerializeDictionary(dict),

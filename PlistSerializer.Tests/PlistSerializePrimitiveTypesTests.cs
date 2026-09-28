@@ -77,6 +77,36 @@ public class PlistSerializePrimitiveTypesTests
     }
 
     [Fact]
+    public void Serialize_TimeSpan_Test()
+    {
+        var source = new TimeSpan(1, 2, 3, 4, 5);
+
+        var node = Assert.IsType<StringNode>(Serializer.Serialize(source));
+
+        Assert.Multiple(() =>
+        {
+            Assert.Equal("1.02:03:04.0050000", node.Value);
+            Assert.Equal(source, Deserializer.Deserialize<TimeSpan>(node));
+        });
+    }
+
+    [Theory]
+    [InlineData("https://example.com/a%20b?c=d")]
+    [InlineData("relative/path")]
+    public void Serialize_Uri_Test(string source)
+    {
+        var uri = new Uri(source, UriKind.RelativeOrAbsolute);
+
+        var node = Assert.IsType<StringNode>(Serializer.Serialize(uri));
+
+        Assert.Multiple(() =>
+        {
+            Assert.Equal(source, node.Value);
+            Assert.Equal(uri, Deserializer.Deserialize<Uri>(node));
+        });
+    }
+
+    [Fact]
     public void Serialize_Enum_Test()
     {
         var source = TestEnum.Value2;

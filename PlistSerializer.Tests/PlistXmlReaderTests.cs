@@ -103,6 +103,21 @@ public class PlistXmlReaderTests
         });
     }
 
+    [Theory]
+    [InlineData("2020-01-01T00:00:00Z")]
+    [InlineData("2020-01-01T00:00:00")]
+    public void Load_XmlDate_Test(string date)
+    {
+        // binary dates load as UTC, so XML ones must too for the two to compare equal
+        var node = Assert.IsType<DateNode>(LoadXml($"<date>{date}</date>"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.Equal(DateTimeKind.Utc, node.Value.Kind);
+            Assert.Equal(new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc), node.Value);
+        });
+    }
+
     [Fact]
     public void Load_XmlUid_Test()
     {

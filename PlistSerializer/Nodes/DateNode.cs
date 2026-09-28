@@ -31,8 +31,9 @@ public sealed class DateNode : PNode<DateTime>
     public DateNode(DateTime value)
         => Value = value;
 
+    // plist dates are UTC, like binary ones, even without the trailing Z
     internal override void Parse(string data)
-        => Value = DateTime.Parse(data, CultureInfo.InvariantCulture);
+        => Value = DateTime.Parse(data, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
 
     // Apple and Python reject fractional seconds in XML, so only binary keeps them
     internal override string ToXmlString()

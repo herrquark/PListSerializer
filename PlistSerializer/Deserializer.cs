@@ -33,7 +33,7 @@ public static class Deserializer
             _ when type.IsArray => DeserializeArray(type, node),
             _ when type.IsList() => DeserializeList(type, node),
             _ when type.IsHashSet() => DeserializeHashSet(type, node),
-            _ when type.IsEnum => DeserializeEnum(type, node),
+            _ when (Nullable.GetUnderlyingType(type) ?? type).IsEnum => DeserializeEnum(Nullable.GetUnderlyingType(type) ?? type, node),
 
             _ when node is IntegerNode integerNode => ConvertToType(integerNode.Value, type),
             _ when node is RealNode realNode => ConvertToType(realNode.Value, type),
@@ -124,13 +124,14 @@ public static class Deserializer
         return hashSet;
     }
 
+    // the serializer writes names, while other writers often store the number
     private static object DeserializeEnum(Type type, PNode node)
-    {
-        if (node is not StringNode stringNode)
-            return default;
-
-        return Enum.Parse(type, stringNode.Value);
-    }
+        => node switch
+        {
+            StringNode stringNode => Enum.Parse(type, stringNode.Value, ignoreCase: true),
+            IntegerNode integerNode => Enum.ToObject(type, integerNode.Value),
+            _ => default
+        };
 
     private static object DeserializeObject(Type type, PNode node)
     {

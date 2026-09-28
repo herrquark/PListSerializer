@@ -101,6 +101,22 @@ public class PlistDeserializePrimitiveTypesTests
         }
     }
 
+    [Theory]
+    [InlineData("Value2")]
+    [InlineData("value2")]
+    [InlineData(1L)]
+    public void Deserialize_Enum_Test(object source)
+    {
+        PNode node = source is string name ? new StringNode(name) : new IntegerNode((long)source);
+
+        // nullable enums take the same path
+        Assert.Multiple(() =>
+        {
+            Assert.Equal(PlistSerializePrimitiveTypesTests.TestEnum.Value2, Deserializer.Deserialize<PlistSerializePrimitiveTypesTests.TestEnum>(node));
+            Assert.Equal(PlistSerializePrimitiveTypesTests.TestEnum.Value2, Deserializer.Deserialize<PlistSerializePrimitiveTypesTests.TestEnum?>(node));
+        });
+    }
+
     [Fact]
     public void Deserialize_Guid_Test()
     {

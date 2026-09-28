@@ -28,8 +28,14 @@ public sealed class RealNode : PNode<double>
     public RealNode(double value)
         => Value = value;
 
+    // Python writes infinity as inf, which double.Parse rejects
     internal override void Parse(string data)
-        => Value = double.Parse(data, CultureInfo.InvariantCulture);
+        => Value = data.Trim().ToLowerInvariant() switch
+        {
+            "inf" or "+inf" => double.PositiveInfinity,
+            "-inf" => double.NegativeInfinity,
+            _ => double.Parse(data, CultureInfo.InvariantCulture)
+        };
 
     internal override string ToXmlString()
         => Value.ToString("g", CultureInfo.InvariantCulture);

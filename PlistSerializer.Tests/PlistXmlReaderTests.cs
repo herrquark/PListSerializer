@@ -118,6 +118,18 @@ public class PlistXmlReaderTests
         });
     }
 
+    // Python writes inf and nan, Apple +infinity and nan
+    [Theory]
+    [InlineData("inf", double.PositiveInfinity)]
+    [InlineData("+inf", double.PositiveInfinity)]
+    [InlineData("-inf", double.NegativeInfinity)]
+    [InlineData("+infinity", double.PositiveInfinity)]
+    [InlineData("-infinity", double.NegativeInfinity)]
+    [InlineData("nan", double.NaN)]
+    [InlineData("1.5", 1.5)]
+    public void Load_XmlReal_Test(string real, double expected)
+        => Assert.Equal(expected, Assert.IsType<RealNode>(LoadXml($"<real>{real}</real>")).Value);
+
     [Fact]
     public void Load_XmlUid_Test()
     {

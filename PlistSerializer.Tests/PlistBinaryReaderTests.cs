@@ -134,6 +134,20 @@ public class PlistBinaryReaderTests
         });
     }
 
+    [Theory]
+    [InlineData("10C8", 200L)]
+    [InlineData("119C40", 40000L)]
+    [InlineData("12B2D05E00", 3000000000L)]
+    [InlineData("13FFFFFFFFFFFFFFFF", -1L)]
+    public void Load_BinaryIntegerWidths_Test(string integer, long expected)
+    {
+        // plutil writes these widths, where 1, 2 and 4-byte integers are unsigned and only 8-byte ones are signed
+        using var stream = new MemoryStream(WrapInBinaryPlist(Convert.FromHexString(integer)));
+        var node = Assert.IsType<IntegerNode>(Plist.Load(stream));
+
+        Assert.Equal(expected, node.Value);
+    }
+
     // wraps a single object in the header, a one-entry offset table and the trailer of a binary plist
     private static byte[] WrapInBinaryPlist(byte[] rootObject)
     {

@@ -67,6 +67,33 @@ public class PlistBinaryWriterTests
         });
     }
 
+    [Theory]
+    [InlineData(0L, "1000")]
+    [InlineData(255L, "10FF")]
+    [InlineData(256L, "110100")]
+    [InlineData(40000L, "119C40")]
+    [InlineData(65536L, "1200010000")]
+    [InlineData(3000000000L, "12B2D05E00")]
+    [InlineData(4294967296L, "130000000100000000")]
+    [InlineData(-1L, "13FFFFFFFFFFFFFFFF")]
+    [InlineData(-40000L, "13FFFFFFFFFFFF63C0")]
+    public void Save_BinaryInteger_Test(long value, string expected)
+    {
+        using var stream = new MemoryStream();
+        Plist.Save(new IntegerNode(value), stream, PlistFormat.Binary);
+
+        // the widths plutil writes, where only the 8-byte form is signed
+        var bytes = stream.ToArray();
+        stream.Seek(0, SeekOrigin.Begin);
+        var integer = Assert.IsType<IntegerNode>(Plist.Load(stream));
+
+        Assert.Multiple(() =>
+        {
+            Assert.Equal(expected, Convert.ToHexString(bytes, 8, bytes.Length - 8 - 1 - 32));
+            Assert.Equal(value, integer.Value);
+        });
+    }
+
     [Fact]
     public void Save_BinaryEqualUids_Test()
     {

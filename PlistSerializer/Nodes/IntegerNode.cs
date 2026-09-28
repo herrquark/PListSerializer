@@ -12,13 +12,14 @@ public class IntegerNode : PNode<long>
 
     internal override byte BinaryTag => 1;
 
+    // 1, 2 and 4-byte integers are unsigned and only the 8-byte form is signed, so negatives take 8 bytes
     internal override int BinaryLength
         => Value switch
         {
-            >= byte.MinValue and <= byte.MaxValue => 0,
-            >= short.MinValue and <= short.MaxValue => 1,
-            >= int.MinValue and <= int.MaxValue => 2,
-            >= long.MinValue and <= long.MaxValue => 3,
+            >= 0 and <= byte.MaxValue => 0,
+            >= 0 and <= ushort.MaxValue => 1,
+            >= 0 and <= uint.MaxValue => 2,
+            _ => 3,
         };
 
     /// <inheritdoc/>
@@ -54,8 +55,8 @@ public class IntegerNode : PNode<long>
         Value = nodeLength switch
         {
             0 => buf[0],
-            1 => buf.ToInt16(),
-            2 => buf.ToInt32(),
+            1 => buf.ToUInt16(),
+            2 => buf.ToUInt32(),
             3 => buf.ToInt64(),
             _ => throw new PlistFormatException("Int > 64Bit"),
         };
@@ -66,8 +67,8 @@ public class IntegerNode : PNode<long>
         byte[] buf = BinaryLength switch
         {
             0 => [(byte)Value],
-            1 => ((short)Value).GetBytes(),
-            2 => ((int)Value).GetBytes(),
+            1 => ((ushort)Value).GetBytes(),
+            2 => ((uint)Value).GetBytes(),
             3 => Value.GetBytes(),
             _ => throw new Exception($"Unexpected length: {BinaryLength}."),
         };

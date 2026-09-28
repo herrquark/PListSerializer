@@ -1,3 +1,4 @@
+using System.Xml;
 using PlistSerializer.Nodes;
 
 namespace PlistSerializer.Internal;
@@ -17,13 +18,29 @@ internal static class NodeFactory
         Register(new ArrayNode());
         Register(new DataNode());
         Register(new DateNode());
-        Register(new UidNode());
+
+        // UIDs have no XML element, ReadXml finds them by their dict
+        RegisterBinary(new UidNode());
 
         Register("string", 5, new StringNode());
         Register("ustring", 6, new StringNode());
 
         Register("true", 0, new BooleanNode());
         Register("false", 0, new BooleanNode());
+    }
+
+    // reads the node at the reader's position, turning a dict whose only entry is a non-negative
+    // CF$UID integer into a UID; Apple also turns other numbers into UIDs, lossily, which this skips
+    public static PNode ReadXml(XmlReader reader)
+    {
+        var node = Create(reader.LocalName);
+        node.ReadXml(reader);
+
+        return node is DictionaryNode { Count: 1 } dictionary
+            && dictionary.TryGetValue(UidNode.CfUidKey, out var value)
+            && value is IntegerNode { Value: >= 0 } integer
+                ? new UidNode((ulong)integer.Value)
+                : node;
     }
 
     // the length tells apart the nodes that share binary tag 0: BooleanNode, NullNode and FillNode
@@ -54,6 +71,11 @@ internal static class NodeFactory
         if (!XmlTags.ContainsKey(node.XmlTag))
             XmlTags.Add(node.XmlTag, node.GetType());
 
+        RegisterBinary(node);
+    }
+
+    private static void RegisterBinary<T>(T node) where T : PNode, new()
+    {
         if (!BinaryTags.ContainsKey(node.BinaryTag))
             BinaryTags.Add(node.BinaryTag, node.GetType());
     }

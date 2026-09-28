@@ -1,12 +1,21 @@
+using System.Globalization;
 using PlistSerializer.Extensions;
+using XmlTools;
 
 namespace PlistSerializer.Nodes;
 
 /// <summary>
 /// A plist UID, which keyed archives use to reference objects.
 /// </summary>
+/// <remarks>
+/// Apple's readers reject a plist holding a UID above <see cref="uint.MaxValue"/>.
+/// </remarks>
 public class UidNode : PNode<ulong>
 {
+    // XML has no UID element, so a UID is written as a dict whose only entry has this key
+    internal const string CfUidKey = "CF$UID";
+
+    // only names the node in ToString, since XML reading finds UIDs by their dict
     internal override string XmlTag => "uid";
 
     internal override byte BinaryTag => 8;
@@ -44,7 +53,15 @@ public class UidNode : PNode<ulong>
         => Value = value;
 
     internal override void Parse(string data)
-        => throw new NotImplementedException();
+        => Value = ulong.Parse(data, CultureInfo.InvariantCulture);
+
+    internal override void WriteXml(LightXmlWriter writer, int indent = 0)
+    {
+        writer.WriteStartElementLineWithIndent("dict", indent);
+        writer.WriteElementLineWithValue("key", CfUidKey, indent + 1);
+        writer.WriteElementLineWithValue("integer", ToXmlString(), indent + 1);
+        writer.WriteEndElementLineWithIndent("dict", indent);
+    }
 
     internal override void ReadBinary(Stream stream, int nodeLength)
     {
@@ -66,7 +83,7 @@ public class UidNode : PNode<ulong>
     }
 
     internal override string ToXmlString()
-        => $"<dict><key>CF$UID</key><integer>{Value}</integer></dict>";
+        => Value.ToString(CultureInfo.InvariantCulture);
 
     internal override void WriteBinary(Stream stream)
     {

@@ -1,3 +1,4 @@
+using System.Text;
 using PlistSerializer.Nodes;
 
 namespace PlistSerializer.Tests;
@@ -88,4 +89,57 @@ public class PlistXmlReaderTests
         using var stream = File.OpenRead(Path.Combine("Resources", "github-7-xml.plist"));
         Assert.NotNull(Plist.Load(stream));
     }
+
+    [Fact]
+    public void Load_XmlCfUid_Test()
+    {
+        var root = Assert.IsType<DictionaryNode>(LoadXml("""
+            <dict>
+                <key>a</key>
+                <dict><key>CF$UID</key><integer>7</integer></dict>
+                <key>b</key>
+                <array><dict><key>CF$UID</key><integer>8</integer></dict></array>
+            </dict>
+            """));
+        var top = Assert.IsType<UidNode>(LoadXml("<dict><key>CF$UID</key><integer>9</integer></dict>"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.Equal(7UL, Assert.IsType<UidNode>(root["a"]).Value);
+            Assert.Equal(8UL, Assert.IsType<UidNode>(Assert.IsType<ArrayNode>(root["b"])[0]).Value);
+            Assert.Equal(9UL, top.Value);
+        });
+    }
+
+    [Theory]
+    [InlineData("<dict><key>CF$UID</key><integer>7</integer><key>b</key><integer>1</integer></dict>")]
+    [InlineData("<dict><key>CF$UID</key><string>7</string></dict>")]
+    [InlineData("<dict><key>CF$UID</key><real>7</real></dict>")]
+    [InlineData("<dict><key>CF$UID</key><integer>-1</integer></dict>")]
+    [InlineData("<dict><key>CF$UIDx</key><integer>7</integer></dict>")]
+    [InlineData("<dict><key>cf$uid</key><integer>7</integer></dict>")]
+    public void Load_XmlCfUidLookalike_Test(string dict)
+        => Assert.IsType<DictionaryNode>(LoadXml(dict));
+
+    [Fact]
+    public void Load_XmlUidElement_Test()
+        => Assert.Throws<PlistFormatException>(() => LoadXml("<uid>7</uid>"));
+
+    [Fact]
+    public void Load_XmlUidsMatchBinary_Test()
+    {
+        // both files were written by plutil from the same source
+        using var xml = File.OpenRead(Path.Combine("Resources", "uid-widths.xml.plist"));
+        using var binary = File.OpenRead(Path.Combine("Resources", "uid-widths.plist"));
+        var fromXml = Assert.IsType<DictionaryNode>(Plist.Load(xml));
+        var fromBinary = Assert.IsType<DictionaryNode>(Plist.Load(binary));
+
+        // plutil sorts the keys of XML dicts only, so compare by key
+        Assert.Equal(fromBinary.Keys.Order(), fromXml.Keys.Order());
+        foreach (var key in fromXml.Keys)
+            Assert.Equal(fromBinary[key], fromXml[key]);
+    }
+
+    private static PNode LoadXml(string node)
+        => Plist.Load(new MemoryStream(Encoding.UTF8.GetBytes($"<plist version=\"1.0\">{node}</plist>")));
 }

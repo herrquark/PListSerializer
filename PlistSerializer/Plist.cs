@@ -80,8 +80,7 @@ public static class Plist
         reader.ReadStartElement("plist");
 
         reader.MoveToContent();
-        var node = NodeFactory.Create(reader.LocalName);
-        node.ReadXml(reader);
+        var node = NodeFactory.ReadXml(reader);
 
         reader.ReadEndElement();
 

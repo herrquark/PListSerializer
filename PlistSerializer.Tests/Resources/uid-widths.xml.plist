@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>byte</key>
+	<dict>
+		<key>CF$UID</key>
+		<integer>1</integer>
+	</dict>
+	<key>int</key>
+	<dict>
+		<key>CF$UID</key>
+		<integer>65536</integer>
+	</dict>
+	<key>list</key>
+	<array>
+		<dict>
+			<key>CF$UID</key>
+			<integer>0</integer>
+		</dict>
+		<dict>
+			<key>CF$UID</key>
+			<integer>0</integer>
+		</dict>
+		<integer>0</integer>
+	</array>
+	<key>max</key>
+	<dict>
+		<key>CF$UID</key>
+		<integer>4294967295</integer>
+	</dict>
+	<key>short</key>
+	<dict>
+		<key>CF$UID</key>
+		<integer>256</integer>
+	</dict>
+</dict>
+</plist>

@@ -136,6 +136,7 @@ public class PlistXmlWriterTests
     [InlineData("utf8-Info.plist")]
     [InlineData("github-7-xml.plist")]
     [InlineData("github-15-large-xml.plist")]
+    [InlineData("uid-widths.xml.plist")]
     public void ToString_SourceXml_Test(string fileName)
     {
         using var stream = File.OpenRead(Path.Combine("Resources", fileName));
@@ -150,5 +151,16 @@ public class PlistXmlWriterTests
         var serialized = Plist.ToString(root);
 
         Assert.Equal(source, serialized);
+    }
+
+    [Fact]
+    public void ToString_Uid_Test()
+    {
+        var node = new DictionaryNode { ["a"] = new UidNode(256) };
+
+        // the layout plutil writes, since XML has no UID element
+        Assert.Equal(
+            "<dict>\n\t<key>a</key>\n\t<dict>\n\t\t<key>CF$UID</key>\n\t\t<integer>256</integer>\n\t</dict>\n</dict>\n",
+            Plist.ToString(node, writePlistMeta: false));
     }
 }

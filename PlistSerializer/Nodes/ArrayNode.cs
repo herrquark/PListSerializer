@@ -40,10 +40,7 @@ public class ArrayNode : PNode, IList<PNode>
 
         while (reader.NodeType != XmlNodeType.EndElement)
         {
-            var node = NodeFactory.Create(reader.LocalName);
-            node.ReadXml(reader);
-
-            Add(node);
+            Add(NodeFactory.ReadXml(reader));
             reader.MoveToContent();
         }
 

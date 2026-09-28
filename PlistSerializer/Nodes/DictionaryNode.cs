@@ -45,9 +45,7 @@ public class DictionaryNode : PNode, IDictionary<string, PNode>
             reader.ReadEndElement();
 
             reader.MoveToContent();
-            var node = NodeFactory.Create(reader.LocalName);
-            node.ReadXml(reader);
-            Add(key, node);
+            Add(key, NodeFactory.ReadXml(reader));
 
             reader.MoveToContent();
         }

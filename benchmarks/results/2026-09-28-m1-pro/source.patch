@@ -1,0 +1,2414 @@
+diff --git a/PlistSerializer.Tests/PlistBinaryWriterTests.cs b/PlistSerializer.Tests/PlistBinaryWriterTests.cs
+index aa1f931..119760f 100644
+--- a/PlistSerializer.Tests/PlistBinaryWriterTests.cs
++++ b/PlistSerializer.Tests/PlistBinaryWriterTests.cs
+@@ -5,6 +5,64 @@ namespace PlistSerializer.Tests;
+ 
+ public class PlistBinaryWriterTests
+ {
++    [Theory]
++    [InlineData(0)]
++    [InlineData(14)]
++    [InlineData(15)]
++    [InlineData(255)]
++    [InlineData(256)]
++    [InlineData(32768)]
++    public void Save_BinaryReferenceWidths_Test(int count)
++    {
++        var node = new DictionaryNode();
++        for (var i = 0; i < count; i++)
++            node.Add("key-" + i, new IntegerNode(i));
++
++        using var stream = new MemoryStream();
++        Plist.Save(node, stream, PlistFormat.Binary);
++        stream.Position = 0;
++        var result = Assert.IsType<DictionaryNode>(Plist.Load(stream));
++
++        Assert.Equal(count, result.Count);
++        Assert.All(node, pair => Assert.Equal(pair.Value, result[pair.Key]));
++    }
++
++    [Theory]
++    [InlineData(0)]
++    [InlineData(127)]
++    [InlineData(128)]
++    [InlineData(129)]
++    [InlineData(255)]
++    [InlineData(256)]
++    [InlineData(257)]
++    [InlineData(100000)]
++    public void Save_BinaryStringBufferBoundaries_Test(int length)
++    {
++        var strings = new[] { new string('x', length), new string('é', length) };
++        var node = Serializer.Serialize(strings);
++        using var stream = new MemoryStream();
++        Plist.Save(node, stream, PlistFormat.Binary);
++        stream.Position = 0;
++
++        Assert.Equal(strings, Deserializer.Deserialize<string[]>(Plist.Load(stream)));
++    }
++
++    [Fact]
++    public void Save_BinaryEqualBooleans_Test()
++    {
++        var values = new[] { true, true, false, false, true };
++        using var stream = new MemoryStream();
++        Plist.Save(Serializer.Serialize(values), stream, PlistFormat.Binary);
++        var bytes = stream.ToArray();
++        stream.Position = 0;
++
++        Assert.Multiple(() =>
++        {
++            Assert.Equal(3UL, BinaryPrimitives.ReadUInt64BigEndian(bytes.AsSpan(bytes.Length - 24)));
++            Assert.Equal(values, Deserializer.Deserialize<bool[]>(Plist.Load(stream)));
++        });
++    }
++
+     [Fact]
+     public void Save_BinaryRoundTrip_Test()
+     {
+diff --git a/PlistSerializer.Tests/PlistConcurrencyTests.cs b/PlistSerializer.Tests/PlistConcurrencyTests.cs
+index 8dbe046..3ebab30 100644
+--- a/PlistSerializer.Tests/PlistConcurrencyTests.cs
++++ b/PlistSerializer.Tests/PlistConcurrencyTests.cs
+@@ -8,6 +8,25 @@ public class PlistConcurrencyTests
+ {
+     private const int Threads = 8;
+ 
++    [Theory]
++    [InlineData(PlistFormat.Xml)]
++    [InlineData(PlistFormat.Binary)]
++    public void RoundTrip_ManySmallPlistsOnManyThreads_Test(PlistFormat format)
++    {
++        var errors = RunInRounds(1000, (round, thread) =>
++        {
++            var model = new SimpleClass { Id = round * Threads + thread, Name = $"device-{thread}-{round}" };
++            using var stream = new MemoryStream();
++            Plist.Save(Serializer.Serialize(model), stream, format);
++            stream.Position = 0;
++            var result = Deserializer.Deserialize<SimpleClass>(Plist.Load(stream));
++            Assert.Equal(model.Id, result.Id);
++            Assert.Equal(model.Name, result.Name);
++        });
++
++        Assert.Empty(errors);
++    }
++
+     [Fact]
+     public void Serialize_ManyNewTypesOnManyThreads_Test()
+     {
+@@ -32,6 +51,42 @@ public class PlistConcurrencyTests
+         Assert.Empty(errors);
+     }
+ 
++    [Fact]
++    public void Deserialize_NewPropertyMapsOnManyThreads_Test()
++    {
++        var deserialize = typeof(Deserializer).GetMethod(nameof(Deserializer.Deserialize));
++        var methods = NewTypes(typeof(Holder<>)).Select(t => deserialize.MakeGenericMethod(t)).ToArray();
++        var node = new DictionaryNode { ["Value"] = new NullNode() };
++
++        var errors = RunInRounds(methods.Length, (round, _) => methods[round].Invoke(null, [node]));
++
++        Assert.Empty(errors);
++    }
++
++    [Fact]
++    public void Serialize_SameNewTypeOnManyThreads_Test()
++    {
++        var objects = NewTypes(typeof(Holder<>))
++            .Select(t => typeof(Holder<>).MakeGenericType(t)).Select(Activator.CreateInstance).ToArray();
++
++        var errors = RunInRounds(objects.Length, (round, _) => Serializer.Serialize(objects[round]));
++
++        Assert.Empty(errors);
++    }
++
++    [Fact]
++    public void Deserialize_ConstructsSharedResolverOnce_Test()
++    {
++        var node = new DictionaryNode();
++        var errors = RunInRounds(1, (_, _) => Deserializer.Deserialize<CountedResolvedHolder>(node));
++
++        Assert.Multiple(() =>
++        {
++            Assert.Empty(errors);
++            Assert.Equal(1, CountingResolver.Instances);
++        });
++    }
++
+     // every closed generic type is new to the serializer's static caches
+     private static IEnumerable<Type> NewTypes(Type genericDefinition)
+         => typeof(object).Assembly.GetExportedTypes()
+diff --git a/PlistSerializer.Tests/PlistXmlWriterTests.cs b/PlistSerializer.Tests/PlistXmlWriterTests.cs
+index cd0a16b..70848a8 100644
+--- a/PlistSerializer.Tests/PlistXmlWriterTests.cs
++++ b/PlistSerializer.Tests/PlistXmlWriterTests.cs
+@@ -6,6 +6,18 @@ namespace PlistSerializer.Tests;
+ 
+ public class PlistXmlWriterTests
+ {
++    [Theory]
++    [InlineData(1)]
++    [InlineData(10000)]
++    public void ToString_MatchesUtf8Stream_Test(int count)
++    {
++        var node = Serializer.Serialize(Enumerable.Repeat("é😂<&>\"", count).ToArray());
++        using var stream = new MemoryStream();
++        Plist.Save(node, stream, PlistFormat.Xml);
++
++        Assert.Equal(Encoding.UTF8.GetString(stream.ToArray()), Plist.ToString(node));
++    }
++
+     [Fact]
+     public void Save_XmlRoundTrip_Test()
+     {
+diff --git a/PlistSerializer.Tests/TestModels/GenericHolders.cs b/PlistSerializer.Tests/TestModels/GenericHolders.cs
+index 1e92d49..a3b75de 100644
+--- a/PlistSerializer.Tests/TestModels/GenericHolders.cs
++++ b/PlistSerializer.Tests/TestModels/GenericHolders.cs
+@@ -17,3 +17,22 @@ public class NullResolver : IPlistTypeResolver
+ {
+     public Type ResolveType(PNode node) => null;
+ }
++
++[PlistTypeResolver(typeof(CountingResolver))]
++public class CountedResolvedHolder
++{
++    public string Value { get; set; }
++}
++
++public class CountingResolver : IPlistTypeResolver
++{
++    public static int Instances;
++
++    public CountingResolver()
++    {
++        Interlocked.Increment(ref Instances);
++        Thread.SpinWait(100000);
++    }
++
++    public Type ResolveType(PNode node) => null;
++}
+diff --git a/PlistSerializer.slnx b/PlistSerializer.slnx
+index b903fd4..2ad1440 100644
+--- a/PlistSerializer.slnx
++++ b/PlistSerializer.slnx
+@@ -1,4 +1,7 @@
+ <Solution>
++  <Folder Name="/benchmarks/">
++    <Project Path="benchmarks/PlistSerializer.Performance.csproj" />
++  </Folder>
+   <Project Path="PlistSerializer.Tests/PlistSerializer.Tests.csproj" />
+   <Project Path="PlistSerializer/PlistSerializer.csproj" />
+ </Solution>
+diff --git a/PlistSerializer/Deserializer.cs b/PlistSerializer/Deserializer.cs
+index 8a3f563..a70fb60 100644
+--- a/PlistSerializer/Deserializer.cs
++++ b/PlistSerializer/Deserializer.cs
+@@ -2,6 +2,7 @@ using System.Collections;
+ using System.ComponentModel;
+ using System.Globalization;
+ using System.Reflection;
++using System.Runtime.CompilerServices;
+ using PlistSerializer.Extensions;
+ using PlistSerializer.Nodes;
+ 
+@@ -12,6 +13,8 @@ namespace PlistSerializer;
+ /// </summary>
+ public static class Deserializer
+ {
++    private static readonly ConditionalWeakTable<Type, Dictionary<string, PropertyInfo>> PropertiesCache = new();
++
+     /// <summary>
+     /// Deserializes a plist node into an instance of <typeparamref name="TOut"/>.
+     /// </summary>
+@@ -141,14 +144,11 @@ public static class Deserializer
+         var resolvedType = type.GetResolver()?.ResolveType(dictionaryNode) ?? type;
+ 
+         var instance = Activator.CreateInstance(resolvedType);
+-        var properties = resolvedType.GetProperties(BindingFlags.Instance | BindingFlags.Public)
+-            .Where(p => p.IsPlistMember())
+-            .ResolvePlistKeys();
++        var properties = PropertiesCache.GetValue(resolvedType, BuildProperties);
+ 
+         foreach (var (key, value) in dictionaryNode)
+         {
+-            var property = properties.FirstOrDefault(x => x.GetName() == key);
+-            if (property == null)
++            if (!properties.TryGetValue(key, out var property))
+                 continue;
+ 
+             property.SetValue(instance, Deserialize(property.PropertyType, value));
+@@ -157,6 +157,12 @@ public static class Deserializer
+         return instance;
+     }
+ 
++    private static Dictionary<string, PropertyInfo> BuildProperties(Type type)
++        => type.GetProperties(BindingFlags.Instance | BindingFlags.Public)
++            .Where(p => p.IsPlistMember())
++            .ResolvePlistKeys()
++            .ToDictionary(p => p.GetName(), StringComparer.Ordinal);
++
+     private static object ConvertToType(object value, Type type)
+     {
+         type = Nullable.GetUnderlyingType(type) ?? type;
+@@ -167,6 +173,7 @@ public static class Deserializer
+         return type switch
+         {
+             _ when value is null => null,
++            _ when type == value.GetType() => value,
+             _ when type == typeof(TimeSpan) => TimeSpan.TryParse(value.ToString(), culture, out var result) ? result : null,
+             _ when type == typeof(Uri) => new Uri(value.ToString(), UriKind.RelativeOrAbsolute),
+             _ when type == typeof(Guid) => Guid.TryParse(value.ToString(), out var result) ? result : null,
+diff --git a/PlistSerializer/Extensions/LightXmlWriterExtensions.cs b/PlistSerializer/Extensions/LightXmlWriterExtensions.cs
+index a3a76eb..110b76d 100644
+--- a/PlistSerializer/Extensions/LightXmlWriterExtensions.cs
++++ b/PlistSerializer/Extensions/LightXmlWriterExtensions.cs
+@@ -4,9 +4,19 @@ namespace PlistSerializer.Extensions;
+ 
+ internal static class LightXmlWriterExtensions
+ {
++    private static readonly string Indentation = new('\t', Plist.MaxDepth);
++
++    public static void WriteIndent(this LightXmlWriter writer, int indent)
++    {
++        if (indent <= Indentation.Length)
++            writer.Writer.Write(Indentation.AsSpan(0, indent));
++        else
++            writer.WriteRaw(new string('\t', indent));
++    }
++
+     public static void WriteStartElementWithIndent(this LightXmlWriter writer, string name, int indent, bool newLine = false)
+     {
+-        writer.WriteRaw(new string('\t', indent));
++        writer.WriteIndent(indent);
+         writer.WriteStartElement(name);
+         if (newLine)
+             writer.WriteRaw("\n");
+@@ -17,7 +27,7 @@ internal static class LightXmlWriterExtensions
+ 
+     public static void WriteEndElementWithIndent(this LightXmlWriter writer, string name, int indent, bool newLine = false)
+     {
+-        writer.WriteRaw(new string('\t', indent));
++        writer.WriteIndent(indent);
+         writer.WriteEndElement(name);
+         if (newLine)
+             writer.WriteRaw("\n");
+@@ -28,7 +38,7 @@ internal static class LightXmlWriterExtensions
+ 
+     public static void WriteSelfClosingLineWithIndent(this LightXmlWriter writer, string name, int indent)
+     {
+-        writer.WriteRaw(new string('\t', indent));
++        writer.WriteIndent(indent);
+         writer.WriteStartElement(name);
+         writer.WriteEndElement(name);
+         writer.WriteRaw("\n");
+@@ -36,7 +46,7 @@ internal static class LightXmlWriterExtensions
+ 
+     public static void WriteElementLineWithValue(this LightXmlWriter writer, string name, string value, int indent)
+     {
+-        writer.WriteRaw(new string('\t', indent));
++        writer.WriteIndent(indent);
+         writer.WriteStartElement(name);
+         writer.WriteValue(value);
+         writer.WriteEndElement(name);
+diff --git a/PlistSerializer/Extensions/TypeExtensions.cs b/PlistSerializer/Extensions/TypeExtensions.cs
+index d470e18..e14faf5 100644
+--- a/PlistSerializer/Extensions/TypeExtensions.cs
++++ b/PlistSerializer/Extensions/TypeExtensions.cs
+@@ -1,34 +1,46 @@
+-using System.Collections.Concurrent;
+ using System.Reflection;
++using System.Runtime.CompilerServices;
+ using PlistSerializer.Attributes;
+ 
+ namespace PlistSerializer.Extensions;
+ 
+ internal static class TypeExtensions
+ {
+-    private static readonly ConcurrentDictionary<Type, IPlistTypeResolver> ResolverCache = [];
++    private static readonly ConditionalWeakTable<Type, Lazy<IPlistTypeResolver>> ResolverCache = new();
+ 
+     // the interfaces deserialize into the concrete collection
+     public static bool IsList(this Type type)
+-        => type.IsGenericTypeOf(typeof(List<>), typeof(IList<>), typeof(ICollection<>), typeof(IEnumerable<>), typeof(IReadOnlyList<>), typeof(IReadOnlyCollection<>));
++    {
++        var definition = type.IsGenericType ? type.GetGenericTypeDefinition() : null;
++        return definition == typeof(List<>) || definition == typeof(IList<>) || definition == typeof(ICollection<>)
++            || definition == typeof(IEnumerable<>) || definition == typeof(IReadOnlyList<>) || definition == typeof(IReadOnlyCollection<>);
++    }
+ 
+     public static bool IsHashSet(this Type type)
+-        => type.IsGenericTypeOf(typeof(HashSet<>), typeof(ISet<>));
++    {
++        var definition = type.IsGenericType ? type.GetGenericTypeDefinition() : null;
++        return definition == typeof(HashSet<>) || definition == typeof(ISet<>);
++    }
+ 
+     public static bool IsDictionary(this Type type)
+-        => type.IsGenericTypeOf(typeof(Dictionary<,>), typeof(IDictionary<,>), typeof(IReadOnlyDictionary<,>));
++    {
++        var definition = type.IsGenericType ? type.GetGenericTypeDefinition() : null;
++        return definition == typeof(Dictionary<,>) || definition == typeof(IDictionary<,>) || definition == typeof(IReadOnlyDictionary<,>);
++    }
+ 
+     public static IPlistTypeResolver GetResolver(this Type type)
++        => ResolverCache.GetValue(type, CreateResolver).Value;
++
++    // Cache missing attributes too. Only the winning Lazy constructs a shared resolver.
++    private static Lazy<IPlistTypeResolver> CreateResolver(Type type)
++        => new(() => BuildResolver(type));
++
++    private static IPlistTypeResolver BuildResolver(Type type)
+     {
+         var attribute = type.GetCustomAttribute<PlistTypeResolverAttribute>(false);
+ 
+         return attribute is not null
+-            ? ResolverCache.GetOrAdd(type, _ => (IPlistTypeResolver)Activator.CreateInstance(attribute.Resolver))
++            ? (IPlistTypeResolver)Activator.CreateInstance(attribute.Resolver)
+             : null;
+     }
+-
+-    private static bool IsGenericTypeOf(this Type type, params Type[] definitions)
+-        => type != null &&
+-           type.IsGenericType &&
+-           definitions.Contains(type.GetGenericTypeDefinition());
+ }
+diff --git a/PlistSerializer/Internal/BinaryFormatReader.cs b/PlistSerializer/Internal/BinaryFormatReader.cs
+index c8b9e68..049c5c8 100644
+--- a/PlistSerializer/Internal/BinaryFormatReader.cs
++++ b/PlistSerializer/Internal/BinaryFormatReader.cs
+@@ -148,28 +148,28 @@ internal class BinaryFormatReader
+         //      - 4 left bits are 0001
+         //      - 4 right bits is the power of 2 required to represent the length
+         //      - the following pow(2, x) bytes give us the length (big-endian)
+-        var buf = new byte[1];
+-
+-        if (stream.Read(buf, 0, buf.Length) != buf.Length)
++        var marker = stream.ReadByte();
++        if (marker < 0)
+             throw new PlistFormatException("Couldn't read node tag byte.");
+ 
+-        var tag = (byte)((buf[0] >> 4) & 0x0F);
+-        var length = buf[0] & 0x0F;
++        var tag = (byte)((marker >> 4) & 0x0F);
++        var length = marker & 0x0F;
+ 
+         // length fits in 4 bits, or the node type has no count that could spill over
+         if (length != 0xF || !HasCount(tag))
+             return new NodeTagAndLength(tag, length);
+ 
+         // read next byte to determine the length (in bytes) of actual length value
+-        if (stream.Read(buf, 0, buf.Length) != buf.Length)
++        marker = stream.ReadByte();
++        if (marker < 0)
+             throw new PlistFormatException("Couldn't read node length byte.");
+ 
+         // verify that leftmost bits are 0001
+-        if (((buf[0] >> 4) & 0x0F) != 0x1)
++        if (((marker >> 4) & 0x0F) != 0x1)
+             throw new PlistFormatException("Invalid node length byte header.");
+ 
+         // get the rightmost bits, giving us the number of bytes (power of 2) that we need
+-        var byteCount = (int)Math.Pow(2, buf[0] & 0x0F);
++        var byteCount = 1 << (marker & 0x0F);
+ 
+         // now get the length
+         var lengthBuffer = new byte[byteCount];
+diff --git a/PlistSerializer/Internal/BinaryFormatWriter.cs b/PlistSerializer/Internal/BinaryFormatWriter.cs
+index ee8fdd6..54d3307 100644
+--- a/PlistSerializer/Internal/BinaryFormatWriter.cs
++++ b/PlistSerializer/Internal/BinaryFormatWriter.cs
+@@ -1,5 +1,4 @@
+ using System.Buffers.Binary;
+-using PlistSerializer.Extensions;
+ using PlistSerializer.Nodes;
+ 
+ namespace PlistSerializer.Internal;
+@@ -37,28 +36,23 @@ internal class BinaryFormatWriter
+             _ => sizeof(int)
+         };
+ 
++        Span<byte> offsetBuffer = stackalloc byte[4];
+         for (var i = 0; i < offsets.Count; i++)
+         {
+-            byte[] buf = offsetSize switch
+-            {
+-                1 => [(byte)offsets[i]],
+-                2 => ((short)offsets[i]).GetBytes(),
+-                4 => offsets[i].GetBytes(),
+-                _ => null
+-            };
+-
+-            stream.Write(buf, 0, buf.Length);
++            FormatIndex(offsets[i], offsetBuffer.Slice(0, offsetSize));
++            stream.Write(offsetBuffer.Slice(0, offsetSize));
+         }
+ 
+-        var trailer = new byte[32];
++        Span<byte> trailer = stackalloc byte[32];
++        trailer.Clear();
+         trailer[6] = offsetSize;
+         trailer[7] = nodeIndexSize;
+ 
+-        nodeCount.GetBytes().CopyTo(trailer, 12);
+-        topOffsetIndex.GetBytes().CopyTo(trailer, 20);
+-        offsetTableOffset.GetBytes().CopyTo(trailer, 28);
++        BinaryPrimitives.WriteInt32BigEndian(trailer.Slice(12), nodeCount);
++        BinaryPrimitives.WriteInt32BigEndian(trailer.Slice(20), topOffsetIndex);
++        BinaryPrimitives.WriteInt32BigEndian(trailer.Slice(28), offsetTableOffset);
+ 
+-        stream.Write(trailer, 0, trailer.Length);
++        stream.Write(trailer);
+     }
+ 
+     // returns the index of the written node
+@@ -67,20 +61,13 @@ internal class BinaryFormatWriter
+         var nodeIndex = offsets.Count;
+         if (node.IsBinaryUnique && node is IEquatable<PNode>)
+         {
+-            if (!_uniqueElements.ContainsKey(node.BinaryTag))
+-                _uniqueElements.Add(node.BinaryTag, []);
+-
+-            if (_uniqueElements[node.BinaryTag].ContainsKey(node))
+-            {
+-                if (node is BooleanNode)
+-                    nodeIndex = _uniqueElements[node.BinaryTag][node];
+-                else
+-                    return _uniqueElements[node.BinaryTag][node];
+-            }
+-            else
+-            {
+-                _uniqueElements[node.BinaryTag][node] = nodeIndex;
+-            }
++            if (!_uniqueElements.TryGetValue(node.BinaryTag, out var elements))
++                _uniqueElements.Add(node.BinaryTag, elements = []);
++
++            if (elements.TryGetValue(node, out var existingIndex))
++                return existingIndex;
++
++            elements.Add(node, nodeIndex);
+         }
+ 
+         var offset = (int)stream.Position;
+@@ -121,7 +108,7 @@ internal class BinaryFormatWriter
+         for (var i = 0; i < array.Count; i++)
+         {
+             var nodeIndex = WriteInternal(stream, nodeIndexSize, offsets, array[i]);
+-            FormatIndex(nodeIndex, nodeIndexSize).CopyTo(nodes, nodeIndexSize * i);
++            FormatIndex(nodeIndex, nodes.AsSpan(nodeIndexSize * i, nodeIndexSize));
+         }
+ 
+         stream.Seek(streamPos, SeekOrigin.Begin);
+@@ -137,17 +124,17 @@ internal class BinaryFormatWriter
+         stream.Write(keys, 0, keys.Length);
+         stream.Write(values, 0, values.Length);
+ 
+-        var entries = dictionary.ToArray();
+-
+-        for (var i = 0; i < dictionary.Count; i++)
++        var i = 0;
++        foreach (var key in dictionary.Keys)
+         {
+-            var nodeIndex = WriteInternal(stream, nodeIndexSize, offsets, NodeFactory.CreateKeyElement(entries[i].Key));
+-            FormatIndex(nodeIndex, nodeIndexSize).CopyTo(keys, nodeIndexSize * i);
++            var nodeIndex = WriteInternal(stream, nodeIndexSize, offsets, NodeFactory.CreateKeyElement(key));
++            FormatIndex(nodeIndex, keys.AsSpan(nodeIndexSize * i++, nodeIndexSize));
+         }
+-        for (var i = 0; i < dictionary.Count; i++)
++        i = 0;
++        foreach (var value in dictionary.Values)
+         {
+-            var nodeIndex = WriteInternal(stream, nodeIndexSize, offsets, entries[i].Value);
+-            FormatIndex(nodeIndex, nodeIndexSize).CopyTo(values, nodeIndexSize * i);
++            var nodeIndex = WriteInternal(stream, nodeIndexSize, offsets, value);
++            FormatIndex(nodeIndex, values.AsSpan(nodeIndexSize * i++, nodeIndexSize));
+         }
+ 
+         stream.Seek(streamPos, SeekOrigin.Begin);
+@@ -185,25 +172,21 @@ internal class BinaryFormatWriter
+         return 1;
+     }
+ 
+-    private static byte[] FormatIndex(int index, byte nodeIndexSize)
++    private static void FormatIndex(int index, Span<byte> buffer)
+     {
+-        var buf = new byte[nodeIndexSize];
+-
+-        switch (nodeIndexSize)
++        switch (buffer.Length)
+         {
+             case 1:
+-                buf[0] = (byte)index;
++                buffer[0] = (byte)index;
+                 break;
+             case 2:
+-                BinaryPrimitives.WriteInt16BigEndian(buf, (short)index);
++                BinaryPrimitives.WriteInt16BigEndian(buffer, (short)index);
+                 break;
+             case 4:
+-                BinaryPrimitives.WriteInt32BigEndian(buf, index);
++                BinaryPrimitives.WriteInt32BigEndian(buffer, index);
+                 break;
+             default:
+                 throw new PlistFormatException("Invalid node index size");
+         }
+-
+-        return buf;
+     }
+ }
+diff --git a/PlistSerializer/Internal/NodeFactory.cs b/PlistSerializer/Internal/NodeFactory.cs
+index a7090b3..6861c63 100644
+--- a/PlistSerializer/Internal/NodeFactory.cs
++++ b/PlistSerializer/Internal/NodeFactory.cs
+@@ -6,29 +6,6 @@ namespace PlistSerializer.Internal;
+ // creates concrete nodes from an XML tag or a binary type code
+ internal static class NodeFactory
+ {
+-    private static readonly Dictionary<string, Type> XmlTags = [];
+-    private static readonly Dictionary<byte, Type> BinaryTags = [];
+-
+-    static NodeFactory()
+-    {
+-        Register(new DictionaryNode());
+-        Register(new IntegerNode());
+-        Register(new RealNode());
+-        Register(new StringNode());
+-        Register(new ArrayNode());
+-        Register(new DataNode());
+-        Register(new DateNode());
+-
+-        // UIDs have no XML element, ReadXml finds them by their dict
+-        RegisterBinary(new UidNode());
+-
+-        Register("string", 5, new StringNode());
+-        Register("ustring", 6, new StringNode());
+-
+-        Register("true", 0, new BooleanNode());
+-        Register("false", 0, new BooleanNode());
+-    }
+-
+     // reads the node at the reader's position, turning a dict whose only entry is a non-negative
+     // CF$UID integer into a UID; Apple also turns other numbers into UIDs, lossily, which this skips
+     public static PNode ReadXml(XmlReader reader)
+@@ -53,15 +30,32 @@ internal static class NodeFactory
+         {
+             0 when length == 0x00 => new NullNode(),
+             0 when length == 0x0F => new FillNode(),
++            0 => new BooleanNode(),
++            1 => new IntegerNode(),
++            2 => new RealNode(),
++            3 => new DateNode(),
++            4 => new DataNode(),
++            5 => new StringNode(),
+             6 => new StringNode { IsUtf16 = true },
+-            _ when BinaryTags.ContainsKey(binaryTag) => (PNode)Activator.CreateInstance(BinaryTags[binaryTag]),
++            8 => new UidNode(),
++            0xA => new ArrayNode(),
++            0xD => new DictionaryNode(),
+             _ => throw new PlistFormatException($"Unknown node - binary tag {binaryTag}")
+         };
+ 
+     public static PNode Create(string tag)
+-        => XmlTags.ContainsKey(tag)
+-            ? (PNode)Activator.CreateInstance(XmlTags[tag])
+-            : throw new PlistFormatException($"Unknown node - XML tag \"{tag}\"");
++        => tag switch
++        {
++            "dict" => new DictionaryNode(),
++            "integer" => new IntegerNode(),
++            "real" => new RealNode(),
++            "string" or "ustring" => new StringNode(),
++            "array" => new ArrayNode(),
++            "data" => new DataNode(),
++            "date" => new DateNode(),
++            "true" or "false" or "boolean" => new BooleanNode(),
++            _ => throw new PlistFormatException($"Unknown node - XML tag \"{tag}\"")
++        };
+ 
+     // holds the extended length of a binary node
+     public static PNode CreateLengthElement(int length)
+@@ -69,27 +63,4 @@ internal static class NodeFactory
+ 
+     public static PNode CreateKeyElement(string key)
+         => new StringNode(key);
+-
+-    private static void Register<T>(T node) where T : PNode, new()
+-    {
+-        if (!XmlTags.ContainsKey(node.XmlTag))
+-            XmlTags.Add(node.XmlTag, node.GetType());
+-
+-        RegisterBinary(node);
+-    }
+-
+-    private static void RegisterBinary<T>(T node) where T : PNode, new()
+-    {
+-        if (!BinaryTags.ContainsKey(node.BinaryTag))
+-            BinaryTags.Add(node.BinaryTag, node.GetType());
+-    }
+-
+-    private static void Register<T>(string xmlTag, byte binaryTag, T node) where T : PNode, new()
+-    {
+-        if (!XmlTags.ContainsKey(xmlTag))
+-            XmlTags.Add(xmlTag, node.GetType());
+-
+-        if (!BinaryTags.ContainsKey(binaryTag))
+-            BinaryTags.Add(binaryTag, node.GetType());
+-    }
+ }
+diff --git a/PlistSerializer/Internal/NodeTagAndLength.cs b/PlistSerializer/Internal/NodeTagAndLength.cs
+index 1658289..0e4f027 100644
+--- a/PlistSerializer/Internal/NodeTagAndLength.cs
++++ b/PlistSerializer/Internal/NodeTagAndLength.cs
+@@ -1,6 +1,6 @@
+ namespace PlistSerializer.Internal;
+ 
+-internal class NodeTagAndLength(byte tag, int length)
++internal readonly struct NodeTagAndLength(byte tag, int length)
+ {
+     public byte Tag { get; } = tag;
+     public int Length { get; } = length;
+diff --git a/PlistSerializer/Nodes/IntegerNode.cs b/PlistSerializer/Nodes/IntegerNode.cs
+index fa536af..89fe995 100644
+--- a/PlistSerializer/Nodes/IntegerNode.cs
++++ b/PlistSerializer/Nodes/IntegerNode.cs
+@@ -1,5 +1,5 @@
++using System.Buffers.Binary;
+ using System.Globalization;
+-using PlistSerializer.Extensions;
+ 
+ namespace PlistSerializer.Nodes;
+ 
+@@ -47,32 +47,27 @@ public class IntegerNode : PNode<long>
+ 
+     internal override void ReadBinary(Stream stream, int nodeLength)
+     {
+-        var buf = new byte[1 << nodeLength];
++        if (nodeLength is < 0 or > 3)
++            throw new PlistFormatException("Int > 64Bit");
++        Span<byte> buf = stackalloc byte[1 << nodeLength];
+ 
+-        if (stream.Read(buf, 0, buf.Length) != buf.Length)
++        if (stream.Read(buf) != buf.Length)
+             throw new PlistFormatException();
+ 
+         Value = nodeLength switch
+         {
+             0 => buf[0],
+-            1 => buf.ToUInt16(),
+-            2 => buf.ToUInt32(),
+-            3 => buf.ToInt64(),
++            1 => BinaryPrimitives.ReadUInt16BigEndian(buf),
++            2 => BinaryPrimitives.ReadUInt32BigEndian(buf),
++            3 => BinaryPrimitives.ReadInt64BigEndian(buf),
+             _ => throw new PlistFormatException("Int > 64Bit"),
+         };
+     }
+ 
+     internal override void WriteBinary(Stream stream)
+     {
+-        byte[] buf = BinaryLength switch
+-        {
+-            0 => [(byte)Value],
+-            1 => ((ushort)Value).GetBytes(),
+-            2 => ((uint)Value).GetBytes(),
+-            3 => Value.GetBytes(),
+-            _ => throw new Exception($"Unexpected length: {BinaryLength}."),
+-        };
+-
+-        stream.Write(buf, 0, buf.Length);
++        Span<byte> buffer = stackalloc byte[8];
++        BinaryPrimitives.WriteInt64BigEndian(buffer, Value);
++        stream.Write(buffer.Slice(8 - (1 << BinaryLength)));
+     }
+ }
+diff --git a/PlistSerializer/Nodes/StringNode.cs b/PlistSerializer/Nodes/StringNode.cs
+index cb117ed..98f4a08 100644
+--- a/PlistSerializer/Nodes/StringNode.cs
++++ b/PlistSerializer/Nodes/StringNode.cs
+@@ -42,7 +42,14 @@ public class StringNode : PNode<string>
+             _value = value;
+ 
+             // the binary format stores ASCII strings as one byte per character and all others as UTF-16
+-            IsUtf16 = value.Any(c => c > 0x7F);
++            IsUtf16 = false;
++            foreach (var character in value)
++            {
++                if (character <= 0x7F)
++                    continue;
++                IsUtf16 = true;
++                break;
++            }
+         }
+     }
+ 
+@@ -57,20 +64,25 @@ public class StringNode : PNode<string>
+ 
+     internal override void ReadBinary(Stream stream, int nodeLength)
+     {
+-        var buf = new byte[nodeLength * (BinaryTag == 5 ? 1 : 2)];
++        if (nodeLength < 0)
++            throw new PlistFormatException("Invalid string length.");
++        var byteCount = checked(nodeLength * (IsUtf16 ? 2 : 1));
++        Span<byte> buf = byteCount <= 256 ? stackalloc byte[byteCount] : new byte[byteCount];
+ 
+-        if (stream.Read(buf, 0, buf.Length) != buf.Length)
++        if (stream.Read(buf) != buf.Length)
+             throw new PlistFormatException();
+ 
+         var encoding = BinaryTag == 5 ? Encoding.UTF8 : Encoding.BigEndianUnicode;
+ 
+-        Value = encoding.GetString(buf, 0, buf.Length);
++        Value = encoding.GetString(buf);
+     }
+ 
+     internal override void WriteBinary(Stream stream)
+     {
+         var encoding = IsUtf16 ? Encoding.BigEndianUnicode : Encoding.UTF8;
+-        var buf = encoding.GetBytes(Value);
+-        stream.Write(buf, 0, buf.Length);
++        var byteCount = encoding.GetByteCount(Value);
++        Span<byte> buf = byteCount <= 256 ? stackalloc byte[byteCount] : new byte[byteCount];
++        encoding.GetBytes(Value.AsSpan(), buf);
++        stream.Write(buf);
+     }
+ }
+diff --git a/PlistSerializer/PNode.cs b/PlistSerializer/PNode.cs
+index d4086ef..24b556a 100644
+--- a/PlistSerializer/PNode.cs
++++ b/PlistSerializer/PNode.cs
+@@ -1,4 +1,5 @@
+ using System.Xml;
++using PlistSerializer.Extensions;
+ using XmlTools;
+ 
+ namespace PlistSerializer;
+@@ -46,7 +47,7 @@ public abstract class PNode<T> : PNode, IEquatable<PNode>
+     internal override void WriteXml(LightXmlWriter writer, int indent = 0)
+     {
+         if (indent > 0)
+-            writer.WriteRaw(new string('\t', indent));
++            writer.WriteIndent(indent);
+ 
+         writer.WriteStartElement(XmlTag);
+         writer.WriteValue(ToXmlString());
+diff --git a/PlistSerializer/Plist.cs b/PlistSerializer/Plist.cs
+index e82b565..8062020 100644
+--- a/PlistSerializer/Plist.cs
++++ b/PlistSerializer/Plist.cs
+@@ -49,22 +49,28 @@ public static class Plist
+     /// <returns>The plist as XML.</returns>
+     public static string ToString(PNode rootNode, bool writePlistMeta = true)
+     {
+-        using var xmlStream = new MemoryStream();
+-        WriteXmlToStream(rootNode, xmlStream, writePlistMeta);
+-
+-        return Encoding.UTF8.GetString(xmlStream.ToArray(), 0, (int)xmlStream.Length);
++        using var writer = new StringWriter();
++        WriteXml(rootNode, writer, writePlistMeta);
++        return writer.ToString();
+     }
+ 
+     private static bool IsFormatBinary(Stream stream)
+     {
+-        var buf = new byte[8];
++        Span<byte> buf = stackalloc byte[8];
+ 
+         // read in the first 8 bytes and rewind
+-        stream.Read(buf, 0, buf.Length);
++        var length = 0;
++        while (length < buf.Length)
++        {
++            var read = stream.Read(buf.Slice(length));
++            if (read == 0)
++                break;
++            length += read;
++        }
+         stream.Seek(0, SeekOrigin.Begin);
+ 
+         // compare to the known indicator (TODO: validate the version as well)
+-        return Encoding.UTF8.GetString(buf, 0, 6) == "bplist";
++        return length >= 6 && buf.Slice(0, 6).SequenceEqual("bplist"u8);
+     }
+ 
+     private static PNode LoadAsBinary(Stream stream)
+@@ -93,8 +99,13 @@ public static class Plist
+ 
+     private static void WriteXmlToStream(PNode rootNode, Stream stream, bool writePlistMeta = true)
+     {
+-        using var streamWriter = new StreamWriter(stream, Utf8NoByteOrderMark, 2048, true);
+-        using var xmlWriter = new LightXmlWriter(streamWriter);
++        using var streamWriter = new StreamWriter(stream, Utf8NoByteOrderMark, 512, true);
++        WriteXml(rootNode, streamWriter, writePlistMeta);
++    }
++
++    private static void WriteXml(PNode rootNode, TextWriter writer, bool writePlistMeta)
++    {
++        using var xmlWriter = new LightXmlWriter(writer);
+ 
+         if (writePlistMeta)
+             xmlWriter.WritePlistHeader();
+diff --git a/PlistSerializer/Serializer.cs b/PlistSerializer/Serializer.cs
+index 474e1e8..1df6d8b 100644
+--- a/PlistSerializer/Serializer.cs
++++ b/PlistSerializer/Serializer.cs
+@@ -1,8 +1,8 @@
+ using System.Collections;
+-using System.Collections.Concurrent;
+ using System.ComponentModel;
+ using System.Globalization;
+ using System.Reflection;
++using System.Runtime.CompilerServices;
+ using PlistSerializer.Extensions;
+ using PlistSerializer.Nodes;
+ 
+@@ -13,7 +13,7 @@ namespace PlistSerializer;
+ /// </summary>
+ public static class Serializer
+ {
+-    private static readonly ConcurrentDictionary<Type, GetterMember[]> MembersCache = [];
++    private static readonly ConditionalWeakTable<Type, GetterMember[]> MembersCache = new();
+ 
+     /// <summary>
+     /// Serializes an object into a plist node.
+@@ -72,12 +72,12 @@ public static class Serializer
+     {
+         var dictNode = new DictionaryNode();
+ 
+-        foreach (var key in dict.Keys)
++        foreach (DictionaryEntry entry in dict)
+         {
+-            if (dict[key] is null)
++            if (entry.Value is null)
+                 continue;
+ 
+-            dictNode.Add(key.ToString(), Serialize(dict[key], depth + 1));
++            dictNode.Add(entry.Key.ToString(), Serialize(entry.Value, depth + 1));
+         }
+ 
+         return dictNode;
+@@ -101,28 +101,26 @@ public static class Serializer
+     private static PNode SerializeEnumerable(IEnumerable list, int depth)
+     {
+         var node = new ArrayNode();
+-        node.AddRange(list.Cast<object>().Where(x => x is not null).Select(x => Serialize(x, depth + 1)));
++        foreach (var value in list)
++            if (value is not null)
++                node.Add(Serialize(value, depth + 1));
+         return node;
+     }
+ 
+     private static GetterMember[] GetMembers(Type type)
+-    {
+-        if (MembersCache.TryGetValue(type, out var members))
+-            return members;
++        => MembersCache.GetValue(type, BuildMembers);
+ 
++    private static GetterMember[] BuildMembers(Type type)
++    {
+         var props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public)
+             .Where(p => p.IsPlistMember());
+ 
+         var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public);
+ 
+-        members = [.. props.Concat<MemberInfo>(fields)
++        return [.. props.Concat<MemberInfo>(fields)
+             .ResolvePlistKeys()
+             .Select(BuildGetterMember)
+             .OrderBy(g => g.Name, StringComparer.OrdinalIgnoreCase)];
+-
+-        MembersCache[type] = members;
+-
+-        return members;
+     }
+ 
+     private static GetterMember BuildGetterMember(MemberInfo m)
+diff --git a/PlistSerializer.Tests/PlistMemoryTests.cs b/PlistSerializer.Tests/PlistMemoryTests.cs
+new file mode 100644
+index 0000000..aafa092
+--- /dev/null
++++ b/PlistSerializer.Tests/PlistMemoryTests.cs
+@@ -0,0 +1,134 @@
++using System.Reflection;
++using System.Reflection.Emit;
++using System.Runtime.CompilerServices;
++using PlistSerializer.Attributes;
++using PlistSerializer.Nodes;
++using PlistSerializer.Tests.TestModels;
++
++namespace PlistSerializer.Tests;
++
++public class PlistMemoryTests
++{
++    [Theory]
++    [InlineData(true, false)]
++    [InlineData(false, false)]
++    [InlineData(false, true)]
++    public void Mapping_CollectibleType_Test(bool serialize, bool resolver)
++    {
++        var references = UseCollectibleType(serialize, resolver);
++
++        Collect();
++
++        Assert.All(references, reference => Assert.False(reference.IsAlive));
++    }
++
++    [Theory]
++    [InlineData(PlistFormat.Xml, 1, 1000)]
++    [InlineData(PlistFormat.Binary, 1, 1000)]
++    [InlineData(PlistFormat.Xml, 4096, 4)]
++    [InlineData(PlistFormat.Binary, 4096, 4)]
++    public void RoundTrip_ReleasesInputsAndOutputs_Test(PlistFormat format, int count, int iterations)
++    {
++        var references = Enumerable.Range(0, iterations)
++            .SelectMany(_ => RoundTrip(format, count)).ToArray();
++
++        Collect();
++
++        Assert.All(references, reference => Assert.False(reference.IsAlive));
++    }
++
++    [Theory]
++    [InlineData(PlistFormat.Xml)]
++    [InlineData(PlistFormat.Binary)]
++    public void RoundTrip_ReleasesLargeData_Test(PlistFormat format)
++    {
++        var references = Enumerable.Range(0, 4).SelectMany(_ => RoundTripData(format)).ToArray();
++
++        Collect();
++
++        Assert.All(references, reference => Assert.False(reference.IsAlive));
++    }
++
++    [MethodImpl(MethodImplOptions.NoInlining)]
++    private static WeakReference[] RoundTripData(PlistFormat format)
++    {
++        var data = new byte[1024 * 1024];
++        Array.Fill(data, (byte)123);
++        var node = Serializer.Serialize(data);
++        using var stream = new MemoryStream();
++        Plist.Save(node, stream, format);
++        stream.Position = 0;
++        var loaded = Plist.Load(stream);
++        var result = Deserializer.Deserialize<byte[]>(loaded);
++        Assert.Equal(data, result);
++
++        return [new(data), new(node), new(stream), new(stream.GetBuffer()), new(loaded), new(result)];
++    }
++
++    [MethodImpl(MethodImplOptions.NoInlining)]
++    private static WeakReference[] UseCollectibleType(bool serialize, bool resolver)
++    {
++        var assembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("CollectibleModel"), AssemblyBuilderAccess.RunAndCollect);
++        var builder = assembly.DefineDynamicModule("Models").DefineType("Model", TypeAttributes.Public, typeof(SimpleClass));
++        // The cached PropertyInfo and getter refer back to the collectible type itself.
++        var self = builder.DefineProperty("Self", PropertyAttributes.None, builder, null);
++        var getter = builder.DefineMethod("get_Self", MethodAttributes.Public | MethodAttributes.SpecialName, builder, Type.EmptyTypes);
++        var getterIl = getter.GetILGenerator();
++        getterIl.Emit(OpCodes.Ldnull);
++        getterIl.Emit(OpCodes.Ret);
++        self.SetGetMethod(getter);
++        var setter = builder.DefineMethod("set_Self", MethodAttributes.Public | MethodAttributes.SpecialName, typeof(void), [builder]);
++        setter.GetILGenerator().Emit(OpCodes.Ret);
++        self.SetSetMethod(setter);
++        if (resolver)
++            builder.SetCustomAttribute(new CustomAttributeBuilder(
++                typeof(PlistTypeResolverAttribute).GetConstructor([typeof(Type)]), [typeof(NullResolver)]));
++        var type = builder.CreateType();
++        var model = Activator.CreateInstance(type);
++        ((SimpleClass)model).Name = "collectible";
++        var node = new DictionaryNode { ["Name"] = new StringNode("collectible"), ["Self"] = new NullNode() };
++
++        if (serialize)
++            Assert.Equal("collectible", Assert.IsType<StringNode>(Assert.IsType<DictionaryNode>(Serializer.Serialize(model))["Name"]).Value);
++        else
++        {
++            var method = typeof(Deserializer).GetMethod(nameof(Deserializer.Deserialize)).MakeGenericMethod(type);
++            Assert.Equal("collectible", ((SimpleClass)method.Invoke(null, [node])).Name);
++        }
++
++        return [new WeakReference(type), new WeakReference(model)];
++    }
++
++    [MethodImpl(MethodImplOptions.NoInlining)]
++    private static WeakReference[] RoundTrip(PlistFormat format, int count)
++    {
++        var models = Enumerable.Range(0, count).Select(i => new SimpleClass { Id = i, Name = "device-" + i }).ToList();
++        var node = Serializer.Serialize(models);
++        using var stream = new MemoryStream();
++        Plist.Save(node, stream, format);
++        stream.Position = 0;
++        var loaded = Plist.Load(stream);
++        var result = Deserializer.Deserialize<List<SimpleClass>>(loaded);
++        Assert.Equal(count, result.Count);
++        Assert.Equal(models[^1].Name, result[^1].Name);
++
++        var originalItem = (DictionaryNode)((ArrayNode)node)[0];
++        var loadedItem = (DictionaryNode)((ArrayNode)loaded)[0];
++        return
++        [
++            new(models), new(models[0]), new(models[0].Name), new(node), new(originalItem),
++            new(originalItem["Name"]), new(originalItem["Id"]), new(stream), new(stream.GetBuffer()),
++            new(loaded), new(loadedItem), new(loadedItem["Name"]), new(loadedItem["Id"]),
++            new(result), new(result[0]), new(result[0].Name)
++        ];
++    }
++
++    private static void Collect()
++    {
++        for (var i = 0; i < 3; i++)
++        {
++            GC.Collect();
++            GC.WaitForPendingFinalizers();
++        }
++    }
++}
+diff --git a/benchmarks/BenchmarkCase.cs b/benchmarks/BenchmarkCase.cs
+new file mode 100644
+index 0000000..b465982
+--- /dev/null
++++ b/benchmarks/BenchmarkCase.cs
+@@ -0,0 +1,10 @@
++namespace PlistSerializer.Performance;
++
++internal sealed class BenchmarkCase(string name, Func<object> run, Action<object> validate)
++{
++    public string Name { get; } = name;
++
++    public Func<object> Run { get; } = run;
++
++    public Action<object> Validate { get; } = validate;
++}
+diff --git a/benchmarks/BenchmarkCatalog.cs b/benchmarks/BenchmarkCatalog.cs
+new file mode 100644
+index 0000000..50b7efa
+--- /dev/null
++++ b/benchmarks/BenchmarkCatalog.cs
+@@ -0,0 +1,35 @@
++namespace PlistSerializer.Performance;
++
++internal static class BenchmarkCatalog
++{
++    public static IEnumerable<BenchmarkCase> Create()
++        => AllCases().Where(benchmark =>
++            benchmark.Name.StartsWith("basic/", StringComparison.Ordinal) ||
++            benchmark.Name.EndsWith("/roundtrip", StringComparison.Ordinal) ||
++            benchmark.Name.EndsWith("/load-deserialize", StringComparison.Ordinal) ||
++            benchmark.Name.StartsWith("rejections/", StringComparison.Ordinal));
++
++    private static IEnumerable<BenchmarkCase> AllCases()
++        => ModelBenchmarks.Create().Concat(EdgeBenchmarks.Create());
++
++    public static void ValidateAll()
++    {
++        var count = 0;
++        foreach (var benchmark in AllCases())
++        {
++            try
++            {
++                benchmark.Validate(benchmark.Run());
++            }
++            catch (Exception error)
++            {
++                throw new InvalidOperationException($"Validation failed: {benchmark.Name}", error);
++            }
++
++            Console.WriteLine($"PASS {benchmark.Name}");
++            count++;
++        }
++
++        Console.WriteLine($"{count} cases validated.");
++    }
++}
+diff --git a/benchmarks/Check.cs b/benchmarks/Check.cs
+new file mode 100644
+index 0000000..2e7b8e1
+--- /dev/null
++++ b/benchmarks/Check.cs
+@@ -0,0 +1,122 @@
++using System.Collections;
++using PlistSerializer.Nodes;
++
++namespace PlistSerializer.Performance;
++
++internal static class Check
++{
++    public static void That(bool condition, string message)
++    {
++        if (!condition)
++            throw new InvalidOperationException(message);
++    }
++
++    public static void Equal<T>(T expected, T actual)
++        => That(EqualityComparer<T>.Default.Equals(expected, actual), $"Expected {expected}, got {actual}.");
++
++    public static void Sequence<T>(IEnumerable<T> expected, IEnumerable<T> actual)
++        => That(actual != null && expected.SequenceEqual(actual), "Sequences differ.");
++
++    public static DateTime Date(DateTime value, PlistFormat? format)
++    {
++        if (format == null)
++            return value;
++
++        var utc = value.ToUniversalTime();
++        return format == PlistFormat.Xml
++            ? new DateTime(utc.Ticks - utc.Ticks % TimeSpan.TicksPerSecond, DateTimeKind.Utc)
++            : utc;
++    }
++
++    public static void Nodes(PNode expected, PNode actual, PlistFormat? format = null)
++    {
++        Equal(expected.GetType(), actual?.GetType());
++
++        switch (expected)
++        {
++            case DictionaryNode dictionary:
++                var result = (DictionaryNode)actual;
++                Sequence(dictionary.Keys, result.Keys);
++                foreach (var pair in dictionary)
++                    Nodes(pair.Value, result[pair.Key], format);
++                break;
++            case ArrayNode array:
++                var items = (ArrayNode)actual;
++                Equal(array.Count, items.Count);
++                for (var i = 0; i < array.Count; i++)
++                    Nodes(array[i], items[i], format);
++                break;
++            case DataNode data:
++                Sequence(data.Value, ((DataNode)actual).Value);
++                break;
++            case DateNode date:
++                Equal(Date(date.Value, format), ((DateNode)actual).Value);
++                break;
++            case NullNode or FillNode:
++                break;
++            default:
++                Equal(expected, actual);
++                break;
++        }
++    }
++
++    // Used only during validation, never inside a timed operation.
++    public static void Values(object expected, object actual, PlistFormat? format)
++    {
++        if (expected == null)
++        {
++            That(actual == null, "Expected null.");
++            return;
++        }
++
++        That(actual != null, $"Missing {expected.GetType().Name} value.");
++
++        switch (expected)
++        {
++            case DateTime date:
++                Equal(Date(date, format), (DateTime)actual);
++                break;
++            case DateTimeOffset offset:
++                var result = (DateTimeOffset)actual;
++                Equal(new DateTimeOffset(Date(offset.UtcDateTime, format)), result);
++                Equal(TimeSpan.Zero, result.Offset);
++                break;
++            case decimal number:
++                Equal(Convert.ToDecimal(decimal.ToDouble(number)), (decimal)actual);
++                break;
++            case byte[] bytes:
++                Sequence(bytes, (byte[])actual);
++                break;
++            case PNode node:
++                Nodes(node, (PNode)actual, format);
++                break;
++            case ISet<string> set:
++                That(((ISet<string>)actual).SetEquals(set), "Sets differ.");
++                break;
++            case IDictionary dictionary:
++                var output = (IDictionary)actual;
++                Equal(dictionary.Values.Cast<object>().Count(value => value != null), output.Count);
++                foreach (DictionaryEntry pair in dictionary)
++                    if (pair.Value != null)
++                        Values(pair.Value, output[pair.Key], format);
++                break;
++            case IEnumerable sequence when expected is not string:
++                var left = sequence.Cast<object>().Where(value => value != null).ToArray();
++                var right = ((IEnumerable)actual).Cast<object>().ToArray();
++                Equal(left.Length, right.Length);
++                for (var i = 0; i < left.Length; i++)
++                    Values(left[i], right[i], format);
++                break;
++            default:
++                Equal(expected, actual);
++                break;
++        }
++    }
++
++    public static void Properties<T>(T expected, T actual, PlistFormat? format)
++    {
++        That(actual != null, $"Missing {typeof(T).Name} model.");
++        foreach (var property in typeof(T).GetProperties())
++            Values(property.GetValue(expected), property.GetValue(actual), format);
++    }
++}
+diff --git a/benchmarks/EdgeBenchmarks.cs b/benchmarks/EdgeBenchmarks.cs
+new file mode 100644
+index 0000000..4d346eb
+--- /dev/null
++++ b/benchmarks/EdgeBenchmarks.cs
+@@ -0,0 +1,242 @@
++using System.Collections;
++using System.Dynamic;
++using PlistSerializer.Nodes;
++using PlistSerializer.Performance.Models;
++
++namespace PlistSerializer.Performance;
++
++internal static class EdgeBenchmarks
++{
++    public static IEnumerable<BenchmarkCase> Create()
++    {
++        var groups = new[]
++        {
++            DictionaryInputs(),
++            Conversions(),
++            Widths(),
++            DepthAndData(),
++            Rejections()
++        };
++
++        foreach (var group in groups)
++            foreach (var benchmark in group)
++                yield return benchmark;
++    }
++
++    private static IEnumerable<BenchmarkCase> DictionaryInputs()
++    {
++        IDictionary legacy = new Hashtable { [7] = "seven", ["present"] = 42L, ["missing"] = null };
++        var pairs = Enumerable.Range(0, 3)
++            .Select(i => new KeyValuePair<string, object>("key-" + i, i == 1 ? null : (long)i));
++        IDictionary<string, object> expando = new ExpandoObject();
++        expando["number"] = 42L;
++        expando["missing"] = null;
++
++        var inputs = new (string Name, object Source, Dictionary<string, object> Expected)[]
++        {
++            ("legacy-dictionary", legacy, new() { ["7"] = "seven", ["present"] = 42L }),
++            ("pair-enumerable", pairs, new() { ["key-0"] = 0L, ["key-2"] = 2L }),
++            ("expando", expando, new() { ["number"] = 42L }),
++            ("legacy-list", new ArrayList { 1L, null, "text", false }, null)
++        };
++
++        foreach (var (name, source, expected) in inputs)
++        {
++            foreach (var benchmark in Scenario.RoundTrips<object, object>(name, source, (_, result, format) =>
++            {
++                if (expected == null)
++                {
++                    Check.Equal(typeof(List<object>), result.GetType());
++                    Check.Values(new object[] { 1L, "text", false }, result, format);
++                }
++                else
++                {
++                    Check.Equal(typeof(Dictionary<string, object>), result.GetType());
++                    Check.Values(expected, result, format);
++                }
++            }))
++                yield return benchmark;
++        }
++    }
++
++    private static IEnumerable<BenchmarkCase> Conversions()
++    {
++        var node = new DictionaryNode
++        {
++            ["Integer"] = new StringNode("42"),
++            ["Real"] = new StringNode("1.25"),
++            ["Boolean"] = new IntegerNode(1),
++            ["NamedEnum"] = new StringNode("read, write"),
++            ["NumericEnum"] = new IntegerNode((long)Access.High),
++            ["NullableEnum"] = new IntegerNode(2),
++            ["UnsignedUid"] = new UidNode(uint.MaxValue),
++            ["SignedUid"] = new UidNode(7),
++            ["NullableUid"] = new UidNode(8),
++            ["BoxedUid"] = new UidNode(9),
++            ["MismatchedNode"] = new StringNode("not an integer node"),
++            ["InvalidGuid"] = new StringNode("invalid"),
++            ["InvalidDuration"] = new StringNode("invalid"),
++            ["Custom"] = new StringNode("123"),
++            ["IgnoredField"] = new IntegerNode(100),
++            ["unknown_key"] = new ArrayNode { new StringNode("ignored") }
++        };
++
++        foreach (var benchmark in Scenario.Import<ConversionModel>("imported-conversions", node, result =>
++        {
++            Check.Equal(42, result.Integer);
++            Check.Equal(1.25, result.Real);
++            Check.Equal(true, result.Boolean);
++            Check.Equal(Access.Read | Access.Write, result.NamedEnum);
++            Check.Equal(Access.High, result.NumericEnum);
++            Check.Equal<Access?>(Access.Write, result.NullableEnum);
++            Check.Equal((ulong)uint.MaxValue, result.UnsignedUid);
++            Check.Equal(7, result.SignedUid);
++            Check.Equal<ulong?>(8UL, result.NullableUid);
++            Check.Equal<object>(9UL, result.BoxedUid);
++            Check.That(result.MismatchedNode == null && result.InvalidGuid == null && result.InvalidDuration == null,
++                "Invalid values should become null.");
++            Check.Equal(new Code(123), result.Custom);
++            Check.Equal(99, result.Missing);
++            Check.Equal(-7, result.IgnoredField);
++        }))
++            yield return benchmark;
++
++        var collections = new DictionaryNode
++        {
++            ["Queue"] = new ArrayNode { new IntegerNode(1) },
++            ["SortedDictionary"] = new DictionaryNode { ["value"] = new IntegerNode(2) }
++        };
++
++        foreach (var benchmark in Scenario.Import<UnsupportedCollectionModel>("unsupported-collections", collections, result =>
++        {
++            Check.That(result.Queue == null, "Unsupported array collection should be null.");
++            Check.Equal(0, result.SortedDictionary.Count);
++        }))
++            yield return benchmark;
++
++        foreach (var benchmark in Scenario.Import<object>("untyped-null", new NullNode(),
++            result => Check.That(result == null, "Untyped null should be null."), [PlistFormat.Binary]))
++            yield return benchmark;
++    }
++
++    private static IEnumerable<BenchmarkCase> Widths()
++    {
++        var integers = new long[]
++        {
++            long.MinValue, -1, 0, 255, 256, 65535, 65536, uint.MaxValue, (long)uint.MaxValue + 1, long.MaxValue
++        };
++        foreach (var benchmark in Scenario.RoundTrips<long[], long[]>("integer-widths", integers,
++            (source, result, _) => Check.Sequence(source, result)))
++            yield return benchmark;
++
++        var reals = new[]
++        {
++            0.0, -0.0, double.Epsilon, double.MinValue, double.MaxValue,
++            double.NaN, double.PositiveInfinity, double.NegativeInfinity
++        };
++        foreach (var benchmark in Scenario.RoundTrips<double[], double[]>("real-special-values", reals,
++            (source, result, _) => Check.Sequence(source, result)))
++            yield return benchmark;
++
++        var uids = new ulong[] { 0, 255, 256, 65535, 65536, uint.MaxValue, (ulong)uint.MaxValue + 1, long.MaxValue };
++        var nodes = new ArrayNode();
++        foreach (var uid in uids)
++            nodes.Add(new UidNode(uid));
++
++        foreach (var benchmark in Scenario.RoundTrips<PNode, ulong[]>("uid-widths", nodes,
++            (_, result, _) => Check.Sequence(uids, result)))
++            yield return benchmark;
++
++        var binaryOnly = new ArrayNode { new NullNode(), new FillNode(), new UidNode(ulong.MaxValue) };
++        foreach (var benchmark in Scenario.RoundTrips<PNode, PNode>("binary-only-nodes", binaryOnly,
++            (source, result, format) => Check.Nodes(source, result, format), formats: [PlistFormat.Binary]))
++            yield return benchmark;
++
++        foreach (var count in new[] { 14, 15, 127, 128, 255, 256, 32768 })
++        {
++            var dictionary = Enumerable.Range(0, count).ToDictionary(i => "key-" + i, i => i);
++            foreach (var benchmark in Scenario.RoundTrips<Dictionary<string, int>, Dictionary<string, int>>(
++                "reference-widths/" + count, dictionary, Check.Values))
++                yield return benchmark;
++        }
++    }
++
++    private static IEnumerable<BenchmarkCase> DepthAndData()
++    {
++        foreach (var depth in new[] { 16, 128, 512 })
++        {
++            var model = new DeepModel();
++            for (var i = 1; i < depth; i++)
++                model = new DeepModel { Child = model };
++
++            foreach (var benchmark in Scenario.RoundTrips<DeepModel, DeepModel>("nesting/" + depth, model, (_, result, _) =>
++            {
++                var actualDepth = 0;
++                for (var item = result; item != null; item = item.Child)
++                    actualDepth++;
++                Check.Equal(depth, actualDepth);
++            }))
++                yield return benchmark;
++        }
++
++        var data = new byte[1024 * 1024];
++        Array.Fill(data, (byte)123);
++        foreach (var benchmark in Scenario.RoundTrips<byte[], byte[]>("large-data/1MiB", data,
++            (source, result, _) => Check.Sequence(source, result)))
++            yield return benchmark;
++
++        foreach (var benchmark in Scenario.RoundTrips<string, string>("root-string", "é😂<&>",
++            (source, result, _) => Check.Equal(source, result)))
++            yield return benchmark;
++
++        foreach (var benchmark in Scenario.RoundTrips<int, int>("root-integer", 42,
++            (source, result, _) => Check.Equal(source, result)))
++            yield return benchmark;
++    }
++
++    private static IEnumerable<BenchmarkCase> Rejections()
++    {
++        yield return Scenario.Rejection<PlistFormatException>("serialize-conflicting-keys",
++            () => Serializer.Serialize(new ConflictingModel()));
++        yield return Scenario.Rejection<PlistFormatException>("deserialize-conflicting-keys",
++            () => Deserializer.Deserialize<ConflictingModel>(new DictionaryNode()));
++        yield return Scenario.Rejection<ArgumentException>("non-string-dictionary-key",
++            () => Deserializer.Deserialize<Dictionary<int, int>>(new DictionaryNode { ["1"] = new IntegerNode(1) }));
++        yield return Scenario.Rejection<NullReferenceException>("mismatched-value-type",
++            () => Deserializer.Deserialize<int>(new ArrayNode()));
++        yield return Scenario.Rejection<ArgumentException>("invalid-enum",
++            () => Deserializer.Deserialize<Access>(new StringNode("invalid")));
++        yield return Scenario.Rejection<OverflowException>("integer-overflow",
++            () => Deserializer.Deserialize<int>(new IntegerNode(long.MaxValue)));
++        yield return Scenario.Rejection<NullReferenceException>("null-root",
++            () => Serializer.Serialize(null));
++        yield return Scenario.Rejection<PlistFormatException>("xml-null",
++            () => Plist.ToString(new NullNode()));
++        yield return Scenario.Rejection<PlistFormatException>("xml-fill",
++            () => Plist.ToString(new FillNode()));
++
++        var cycle = new DeepModel();
++        cycle.Child = cycle;
++        yield return Scenario.Rejection<PlistFormatException>("object-cycle", () => Serializer.Serialize(cycle));
++
++        var listCycle = new List<object>();
++        listCycle.Add(listCycle);
++        yield return Scenario.Rejection<PlistFormatException>("collection-cycle", () => Serializer.Serialize(listCycle));
++
++        PNode tooDeep = new ArrayNode();
++        for (var i = 1; i < 513; i++)
++            tooDeep = new ArrayNode { tooDeep };
++
++        foreach (var format in new[] { PlistFormat.Xml, PlistFormat.Binary })
++        {
++            using var output = new MemoryStream();
++            Plist.Save(tooDeep, output, format);
++            var bytes = output.ToArray();
++            yield return Scenario.Rejection<PlistFormatException>(format + "-nesting-limit", () =>
++            {
++                using var input = new MemoryStream(bytes);
++                return Plist.Load(input);
++            });
++        }
++    }
++}
+diff --git a/benchmarks/ModelBenchmarks.cs b/benchmarks/ModelBenchmarks.cs
+new file mode 100644
+index 0000000..f3bda5e
+--- /dev/null
++++ b/benchmarks/ModelBenchmarks.cs
+@@ -0,0 +1,246 @@
++using PlistSerializer.Nodes;
++using PlistSerializer.Performance.Models;
++
++namespace PlistSerializer.Performance;
++
++internal static class ModelBenchmarks
++{
++    public static IEnumerable<BenchmarkCase> Create()
++    {
++        var families = new[]
++        {
++            Scenario.Models("basic", CreateBasic, Check.Properties),
++            Scenario.Models("scalars", i => new ScalarModel
++            {
++                Integer = i,
++                Text = "device-" + i + " & <xml> Україна 😂"
++            }, Check.Properties),
++            Scenario.Models("nullable", CreateNullable, Check.Properties, ValidateNullableNode),
++            Scenario.Models("collections", _ => new CollectionModel(), ValidateCollections),
++            Scenario.Models("members", _ => new MemberModel
++            {
++                Field = 42,
++                HiddenField = "serialized field",
++                Missing = null
++            }, ValidateMembers, ValidateMemberNode),
++            Scenario.Models("resolvers", CreateResolver, ValidateResolver),
++            Scenario.Models("untyped", CreateUntyped, ValidateUntyped),
++            Scenario.Models("nodes", _ => new NodeModel(), ValidateNodes, ValidateNodeIdentity),
++            Scenario.Models("nested-shared", CreateBranch, ValidateBranch),
++            Scenario.Models("payloads", CreatePayload, Check.Properties)
++        };
++
++        foreach (var family in families)
++            foreach (var benchmark in family)
++                yield return benchmark;
++    }
++
++    private static BasicModel CreateBasic(int i)
++        => new()
++        {
++            Id = i,
++            Name = "device-" + i,
++            Enabled = true,
++            Values = [1, 2, 3],
++            Data = new byte[32]
++        };
++
++    private static NullableModel CreateNullable(int i)
++        => new()
++        {
++            Integer = i,
++            Long = i % 2 == 0 ? long.MaxValue : null,
++            Unsigned = uint.MaxValue,
++            Single = 1.25f,
++            Double = Math.PI,
++            Decimal = 1.25m,
++            Boolean = false,
++            Date = new DateTime(2020, 1, 1, 0, 0, 0, 500, DateTimeKind.Utc),
++            Offset = new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.FromHours(3)),
++            Duration = TimeSpan.FromSeconds(1.5),
++            Identifier = Guid.Empty,
++            Enum = Access.Read | Access.Write
++        };
++
++    private static void ValidateNullableNode(NullableModel source, PNode node)
++    {
++        var dictionary = (DictionaryNode)node;
++        Check.That(!dictionary.ContainsKey(nameof(NullableModel.Missing)), "Null member was written.");
++        Check.Equal(2, ((ArrayNode)dictionary[nameof(NullableModel.Array)]).Count);
++        Check.Equal(2, ((ArrayNode)dictionary[nameof(NullableModel.List)]).Count);
++        Check.Equal(2, ((DictionaryNode)dictionary[nameof(NullableModel.Dictionary)]).Count);
++        Check.That(dictionary.ContainsKey(nameof(NullableModel.Boolean)), "Nullable false was omitted.");
++    }
++
++    private static void ValidateCollections(CollectionModel source, CollectionModel result, PlistFormat? format)
++    {
++        Check.Properties(source, result, format);
++        Check.That(result.HashSet.SetEquals(source.HashSet), "HashSet contents differ.");
++        Check.That(result.SetInterface.SetEquals(source.SetInterface), "ISet contents differ.");
++        Check.Equal(typeof(List<string>), result.EnumerableInterface.GetType());
++        Check.Equal(typeof(List<string>), result.ReadOnlyList.GetType());
++        Check.Equal(typeof(Dictionary<string, int>), result.ReadOnlyDictionary.GetType());
++        Check.Sequence(source.Dictionary.Keys, result.Dictionary.Keys);
++    }
++
++    private static void ValidateMemberNode(MemberModel source, PNode node)
++    {
++        var dictionary = (DictionaryNode)node;
++        foreach (var omitted in new[] { "Default", "OmittedZero", "Missing", "GetOnly", "Item", "old_name", "Inherited" })
++            Check.That(!dictionary.ContainsKey(omitted), $"Unexpected member {omitted}.");
++
++        Check.Equal("derived", ((StringNode)dictionary["Hidden"]).Value);
++        Check.Equal("serialized field", ((StringNode)dictionary["HiddenField"]).Value);
++        Check.Equal(42L, ((IntegerNode)dictionary["public_field"]).Value);
++        Check.Equal(0L, ((IntegerNode)dictionary["WrittenZero"]).Value);
++        Check.Equal(false, ((BooleanNode)dictionary["WrittenFalse"]).Value);
++        Check.Sequence(dictionary.Keys.OrderBy(key => key, StringComparer.OrdinalIgnoreCase), dictionary.Keys);
++    }
++
++    private static void ValidateMembers(MemberModel source, MemberModel result, PlistFormat? format)
++    {
++        Check.Equal(source.Hidden, result.Hidden);
++        Check.Equal(13, ((MemberBase)result).Hidden);
++        Check.Equal(17, ((MemberBase)result).HiddenField);
++        Check.Equal("field initializer", result.HiddenField);
++        Check.Equal(-7, result.Field);
++        Check.Equal(source.Inherited, result.Inherited);
++        Check.Equal(source.Renamed, result.Renamed);
++        Check.Equal(7, result.Default);
++        Check.Equal(0, result.OmittedZero);
++        Check.Equal(8, result.NonDefault);
++        Check.Equal(0, result.WrittenZero);
++        Check.Equal(false, result.WrittenFalse);
++        Check.Equal("initializer", result.Missing);
++        Check.Equal("upper", result.UpperKey);
++        Check.Equal("lower", result.LowerKey);
++    }
++
++    private static ResolverModel CreateResolver(int i)
++    {
++        Variant[] variants =
++        [
++            new NamedVariant { Kind = "name", Name = "name-" + i },
++            new NumberedVariant { Kind = "number", Number = i },
++            new Variant { Kind = "fallback" }
++        ];
++
++        return new()
++        {
++            Single = variants[i % variants.Length],
++            Array = variants,
++            List = [.. variants],
++            Dictionary = variants.ToDictionary(value => value.Kind)
++        };
++    }
++
++    private static void ValidateResolver(ResolverModel source, ResolverModel result, PlistFormat? format)
++    {
++        ValidateVariant(source.Single, result.Single);
++        Check.Equal(source.Array.Length, result.Array.Length);
++        Check.Equal(source.List.Count, result.List.Count);
++        Check.Equal(source.Dictionary.Count, result.Dictionary.Count);
++
++        for (var i = 0; i < source.Array.Length; i++)
++        {
++            ValidateVariant(source.Array[i], result.Array[i]);
++            ValidateVariant(source.List[i], result.List[i]);
++            ValidateVariant(source.Array[i], result.Dictionary[source.Array[i].Kind]);
++        }
++    }
++
++    private static void ValidateVariant(Variant source, Variant result)
++    {
++        Check.Equal(source.GetType(), result.GetType());
++        Check.Equal(source.Kind, result.Kind);
++        if (source is NamedVariant named)
++            Check.Equal(named.Name, ((NamedVariant)result).Name);
++        if (source is NumberedVariant numbered)
++            Check.Equal(numbered.Number, ((NumberedVariant)result).Number);
++    }
++
++    private static UntypedModel CreateUntyped(int i)
++        => new()
++        {
++            Dictionary = new Dictionary<string, object>
++            {
++                ["integer"] = (long)i,
++                ["real"] = 1.25,
++                ["nested"] = new Dictionary<string, object> { ["flag"] = false },
++                ["missing"] = null
++            },
++            Array = new List<object> { "text", true, null, new List<object> { (long)i, new byte[] { 1, 2 } } },
++            Data = new byte[] { 1, 2, 3 },
++            Scalar = new DateTime(2020, 1, 1, 0, 0, 0, 500, DateTimeKind.Utc)
++        };
++
++    private static void ValidateUntyped(UntypedModel source, UntypedModel result, PlistFormat? format)
++    {
++        Check.Properties(source, result, format);
++        Check.Equal(typeof(Dictionary<string, object>), result.Dictionary.GetType());
++        Check.Equal(typeof(List<object>), result.Array.GetType());
++        Check.Equal(typeof(byte[]), result.Data.GetType());
++    }
++
++    private static void ValidateNodeIdentity(NodeModel source, PNode node)
++    {
++        var dictionary = (DictionaryNode)node;
++        foreach (var property in typeof(NodeModel).GetProperties())
++            Check.That(ReferenceEquals(property.GetValue(source), dictionary[property.Name]), "Node was not passed through.");
++    }
++
++    private static void ValidateNodes(NodeModel source, NodeModel result, PlistFormat? format)
++    {
++        Check.Properties(source, result, format);
++        if (format == null)
++            foreach (var property in typeof(NodeModel).GetProperties())
++                Check.That(ReferenceEquals(property.GetValue(source), property.GetValue(result)), "Node identity changed.");
++    }
++
++    private static Branch CreateBranch(int i)
++    {
++        var leaf = new Branch { Id = i };
++        return new()
++        {
++            Id = i,
++            Child = new Branch { Id = i + 1, Child = new Branch { Id = i + 2, Child = leaf } },
++            Array = [leaf, leaf],
++            List = [leaf, leaf],
++            Dictionary = new() { ["left"] = leaf, ["right"] = leaf }
++        };
++    }
++
++    private static void ValidateBranch(Branch source, Branch result, PlistFormat? format)
++    {
++        Check.Equal(source.Id, result.Id);
++        if (source.Child != null)
++            ValidateBranch(source.Child, result.Child, format);
++        else
++            Check.That(result.Child == null, "Unexpected child.");
++
++        if (source.Array == null)
++            return;
++
++        Check.Equal(2, result.Array.Length);
++        Check.Equal(2, result.List.Count);
++        Check.Equal(2, result.Dictionary.Count);
++        for (var i = 0; i < 2; i++)
++        {
++            ValidateBranch(source.Array[i], result.Array[i], format);
++            ValidateBranch(source.List[i], result.List[i], format);
++        }
++        ValidateBranch(source.Dictionary["left"], result.Dictionary["left"], format);
++        ValidateBranch(source.Dictionary["right"], result.Dictionary["right"], format);
++        Check.That(!ReferenceEquals(result.Array[0], result.Array[1]), "Object aliases should expand into independent models.");
++    }
++
++    private static PayloadModel CreatePayload(int i)
++        => new()
++        {
++            Text = new[] { 0, 14, 15, 127, 128, 129, 255, 256, 257 }
++                .SelectMany(length => new[] { new string('x', length), new string('é', length) })
++                .Concat(["duplicate", "duplicate", "😂<&>\"", "unique-" + i])
++                .ToArray(),
++            Data = Enumerable.Range(0, 256).Select(value => (byte)value).ToArray()
++        };
++}
+diff --git a/benchmarks/Models/CollectionModels.cs b/benchmarks/Models/CollectionModels.cs
+new file mode 100644
+index 0000000..cfc61cc
+--- /dev/null
++++ b/benchmarks/Models/CollectionModels.cs
+@@ -0,0 +1,70 @@
++namespace PlistSerializer.Performance.Models;
++
++public class CollectionModel
++{
++    public int[] Array { get; set; } = [0, 1, -1];
++
++    public List<string> List { get; set; } = ["first", null, "last"];
++
++    public HashSet<string> HashSet { get; set; } = ["one", "two"];
++
++    public Dictionary<string, int> Dictionary { get; set; } = new() { ["z"] = 1, ["A"] = 2, [""] = 3 };
++
++    public IList<string> ListInterface { get; set; } = new[] { "a", "b" };
++
++    public ICollection<string> CollectionInterface { get; set; } = new[] { "a", "b" };
++
++    public IEnumerable<string> EnumerableInterface { get; set; } = Enumerable.Range(0, 3).Select(i => "lazy-" + i);
++
++    public IReadOnlyList<string> ReadOnlyList { get; set; } = new[] { "a", "b" };
++
++    public IReadOnlyCollection<string> ReadOnlyCollection { get; set; } = new[] { "a", "b" };
++
++    public ISet<string> SetInterface { get; set; } = new HashSet<string> { "one", "two" };
++
++    public IDictionary<string, int> DictionaryInterface { get; set; } = new Dictionary<string, int> { ["a"] = 1 };
++
++    public IReadOnlyDictionary<string, int> ReadOnlyDictionary { get; set; } = new Dictionary<string, int> { ["b"] = 2 };
++
++    public int[][] Jagged { get; set; } = [[1, 2], [], [3]];
++
++    public List<Dictionary<string, List<int?>>> Nested { get; set; } =
++    [
++        new() { ["items"] = [1, null, 2], ["empty"] = [] }
++    ];
++
++    public string[] Empty { get; set; } = [];
++
++    public byte[] EmptyData { get; set; } = [];
++}
++
++public class Branch
++{
++    public int Id { get; set; }
++
++    public Branch Child { get; set; }
++
++    public Branch[] Array { get; set; }
++
++    public List<Branch> List { get; set; }
++
++    public Dictionary<string, Branch> Dictionary { get; set; }
++}
++
++public class PayloadModel
++{
++    public string[] Text { get; set; }
++
++    public byte[] Data { get; set; }
++}
++
++public class UntypedModel
++{
++    public object Dictionary { get; set; }
++
++    public object Array { get; set; }
++
++    public object Data { get; set; }
++
++    public object Scalar { get; set; }
++}
+diff --git a/benchmarks/Models/ConversionModels.cs b/benchmarks/Models/ConversionModels.cs
+new file mode 100644
+index 0000000..130c017
+--- /dev/null
++++ b/benchmarks/Models/ConversionModels.cs
+@@ -0,0 +1,75 @@
++using System.ComponentModel;
++using System.Globalization;
++using PlistSerializer.Nodes;
++
++namespace PlistSerializer.Performance.Models;
++
++[TypeConverter(typeof(CodeConverter))]
++public readonly struct Code(int value) : IEquatable<Code>
++{
++    public int Value { get; } = value;
++
++    public bool Equals(Code other) => Value == other.Value;
++
++    public override bool Equals(object other) => other is Code code && Equals(code);
++
++    public override int GetHashCode() => Value;
++}
++
++public class CodeConverter : TypeConverter
++{
++    public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
++        => sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
++
++    public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value)
++        => value is string text
++            ? new Code(int.Parse(text, CultureInfo.InvariantCulture))
++            : base.ConvertFrom(context, culture, value);
++}
++
++public class ConversionModel
++{
++    public int Integer { get; set; }
++
++    public double Real { get; set; }
++
++    public bool Boolean { get; set; }
++
++    public Access NamedEnum { get; set; }
++
++    public Access NumericEnum { get; set; }
++
++    public Access? NullableEnum { get; set; }
++
++    public ulong UnsignedUid { get; set; }
++
++    public int SignedUid { get; set; }
++
++    public ulong? NullableUid { get; set; }
++
++    public object BoxedUid { get; set; }
++
++    public IntegerNode MismatchedNode { get; set; }
++
++    public Guid? InvalidGuid { get; set; }
++
++    public TimeSpan? InvalidDuration { get; set; }
++
++    public Code Custom { get; set; }
++
++    public int Missing { get; set; } = 99;
++
++    public int IgnoredField = -7;
++}
++
++public class UnsupportedCollectionModel
++{
++    public Queue<int> Queue { get; set; }
++
++    public SortedDictionary<string, int> SortedDictionary { get; set; }
++}
++
++public class DeepModel
++{
++    public DeepModel Child { get; set; }
++}
+diff --git a/benchmarks/Models/MemberModels.cs b/benchmarks/Models/MemberModels.cs
+new file mode 100644
+index 0000000..7c63ffd
+--- /dev/null
++++ b/benchmarks/Models/MemberModels.cs
+@@ -0,0 +1,72 @@
++using System.ComponentModel;
++using PlistSerializer.Attributes;
++
++namespace PlistSerializer.Performance.Models;
++
++public class MemberBase
++{
++    public int Hidden { get; set; } = 13;
++
++    public int HiddenField = 17;
++
++    [PlistName("inherited_name")]
++    public virtual string Inherited { get; set; }
++
++    [PlistName("old_name")]
++    public virtual int Renamed { get; set; }
++
++    [DefaultValue(7)]
++    public virtual int Default { get; set; } = 7;
++}
++
++public class MemberModel : MemberBase
++{
++    public new string Hidden { get; set; } = "derived";
++
++    public new string HiddenField = "field initializer";
++
++    public override string Inherited { get; set; } = "inherited attribute";
++
++    [PlistName("new_name")]
++    public override int Renamed { get; set; } = 42;
++
++    public override int Default { get; set; } = 7;
++
++    [DefaultValue(0)]
++    public int OmittedZero { get; set; }
++
++    [DefaultValue(7)]
++    public int NonDefault { get; set; } = 8;
++
++    public int WrittenZero { get; set; }
++
++    public bool WrittenFalse { get; set; }
++
++    public string Missing { get; set; } = "initializer";
++
++    [PlistName("public_field")]
++    public int Field = -7;
++
++    [PlistName("Key")]
++    public string UpperKey { get; set; } = "upper";
++
++    [PlistName("key")]
++    public string LowerKey { get; set; } = "lower";
++
++    public string GetOnly => throw new InvalidOperationException("A get-only property must be skipped.");
++
++    public string this[int index]
++    {
++        get => throw new InvalidOperationException("An indexer must be skipped.");
++        set => throw new InvalidOperationException("An indexer must be skipped.");
++    }
++}
++
++public class ConflictingModel
++{
++    [PlistName("shared")]
++    public int First { get; set; }
++
++    [PlistName("shared")]
++    public int Second { get; set; }
++}
+diff --git a/benchmarks/Models/NodeModels.cs b/benchmarks/Models/NodeModels.cs
+new file mode 100644
+index 0000000..96590d6
+--- /dev/null
++++ b/benchmarks/Models/NodeModels.cs
+@@ -0,0 +1,26 @@
++using PlistSerializer.Nodes;
++
++namespace PlistSerializer.Performance.Models;
++
++public class NodeModel
++{
++    public PNode Any { get; set; } = new DictionaryNode { ["value"] = new StringNode("embedded") };
++
++    public ArrayNode Array { get; set; } = new() { new IntegerNode(1), new StringNode("two") };
++
++    public DictionaryNode Dictionary { get; set; } = new() { [""] = new BooleanNode(false) };
++
++    public StringNode String { get; set; } = new("node text");
++
++    public IntegerNode Integer { get; set; } = new(long.MaxValue);
++
++    public RealNode Real { get; set; } = new(1.25);
++
++    public BooleanNode Boolean { get; set; } = new(true);
++
++    public DateNode Date { get; set; } = new(new DateTime(2020, 1, 1, 0, 0, 0, 500, DateTimeKind.Utc));
++
++    public DataNode Data { get; set; } = new([1, 2, 3]);
++
++    public UidNode Uid { get; set; } = new(uint.MaxValue);
++}
+diff --git a/benchmarks/Models/ResolverModels.cs b/benchmarks/Models/ResolverModels.cs
+new file mode 100644
+index 0000000..bb712d5
+--- /dev/null
++++ b/benchmarks/Models/ResolverModels.cs
+@@ -0,0 +1,44 @@
++using PlistSerializer.Attributes;
++using PlistSerializer.Nodes;
++
++namespace PlistSerializer.Performance.Models;
++
++[PlistTypeResolver(typeof(VariantResolver))]
++public class Variant
++{
++    public string Kind { get; set; }
++}
++
++public class NamedVariant : Variant
++{
++    public string Name { get; set; }
++}
++
++public class NumberedVariant : Variant
++{
++    public int Number { get; set; }
++}
++
++public class VariantResolver : IPlistTypeResolver
++{
++    public Type ResolveType(PNode node)
++        => ((DictionaryNode)node)["Kind"] is StringNode kind
++            ? kind.Value switch
++            {
++                "name" => typeof(NamedVariant),
++                "number" => typeof(NumberedVariant),
++                _ => null
++            }
++            : null;
++}
++
++public class ResolverModel
++{
++    public Variant Single { get; set; }
++
++    public Variant[] Array { get; set; }
++
++    public List<Variant> List { get; set; }
++
++    public Dictionary<string, Variant> Dictionary { get; set; }
++}
+diff --git a/benchmarks/Models/ScalarModels.cs b/benchmarks/Models/ScalarModels.cs
+new file mode 100644
+index 0000000..1231aef
+--- /dev/null
++++ b/benchmarks/Models/ScalarModels.cs
+@@ -0,0 +1,114 @@
++namespace PlistSerializer.Performance.Models;
++
++public class BasicModel
++{
++    public int Id { get; set; }
++
++    public string Name { get; set; }
++
++    public bool Enabled { get; set; }
++
++    public int[] Values { get; set; }
++
++    public byte[] Data { get; set; }
++}
++
++[Flags]
++public enum Access : long
++{
++    None = 0,
++    Read = 1,
++    Write = 2,
++    High = 1L << 40
++}
++
++public class ScalarModel
++{
++    public bool Boolean { get; set; } = true;
++
++    public bool False { get; set; }
++
++    public byte Byte { get; set; } = byte.MaxValue;
++
++    public sbyte SignedByte { get; set; } = sbyte.MinValue;
++
++    public short Short { get; set; } = short.MinValue;
++
++    public ushort UnsignedShort { get; set; } = ushort.MaxValue;
++
++    public int Integer { get; set; } = int.MinValue;
++
++    public uint UnsignedInteger { get; set; } = uint.MaxValue;
++
++    public long Long { get; set; } = long.MinValue;
++
++    public ulong UnsignedLong { get; set; } = ulong.MaxValue;
++
++    public char Character { get; set; } = 'é';
++
++    public string Text { get; set; } = "ASCII & <xml> \"quotes\" Україна 😂";
++
++    public float Single { get; set; } = 1.25f;
++
++    public double Double { get; set; } = Math.PI;
++
++    public decimal Decimal { get; set; } = 1.2345678901234567890123456789m;
++
++    public DateTime Utc { get; set; } = new(2020, 1, 2, 3, 4, 5, 500, DateTimeKind.Utc);
++
++    public DateTime Local { get; set; } = new DateTime(2020, 1, 2, 3, 4, 5, 500, DateTimeKind.Utc).ToLocalTime();
++
++    public DateTimeOffset Offset { get; set; } = new(2020, 1, 2, 3, 4, 5, 500, TimeSpan.FromHours(3));
++
++    public TimeSpan Duration { get; set; } = new(1, 2, 3, 4, 5);
++
++    public Guid Identifier { get; set; } = new("00112233-4455-6677-8899-aabbccddeeff");
++
++    public Uri AbsoluteUri { get; set; } = new("https://example.com/a%20b?q=x#part");
++
++    public Uri RelativeUri { get; set; } = new("relative/path", UriKind.Relative);
++
++    public Access Flags { get; set; } = Access.Read | Access.High;
++
++    public Access UnknownEnumValue { get; set; } = (Access)99;
++}
++
++public class NullableModel
++{
++    public int? Integer { get; set; }
++
++    public long? Long { get; set; }
++
++    public uint? Unsigned { get; set; }
++
++    public float? Single { get; set; }
++
++    public double? Double { get; set; }
++
++    public decimal? Decimal { get; set; }
++
++    public bool? Boolean { get; set; }
++
++    public DateTime? Date { get; set; }
++
++    public DateTimeOffset? Offset { get; set; }
++
++    public TimeSpan? Duration { get; set; }
++
++    public Guid? Identifier { get; set; }
++
++    public Access? Enum { get; set; }
++
++    public int? Missing { get; set; }
++
++    public int?[] Array { get; set; } = [0, null, 42];
++
++    public List<Access?> List { get; set; } = [Access.None, null, Access.Write];
++
++    public Dictionary<string, decimal?> Dictionary { get; set; } = new()
++    {
++        ["zero"] = 0m,
++        ["missing"] = null,
++        ["value"] = 1.25m
++    };
++}
+diff --git a/benchmarks/PlistBenchmarks.cs b/benchmarks/PlistBenchmarks.cs
+new file mode 100644
+index 0000000..24da805
+--- /dev/null
++++ b/benchmarks/PlistBenchmarks.cs
+@@ -0,0 +1,26 @@
++using System.Globalization;
++using BenchmarkDotNet.Attributes;
++
++namespace PlistSerializer.Performance;
++
++[MemoryDiagnoser]
++public class PlistBenchmarks
++{
++    private BenchmarkCase _benchmark;
++
++    [ParamsSource(nameof(Cases))]
++    public string Case { get; set; }
++
++    public IEnumerable<string> Cases => BenchmarkCatalog.Create().Select(benchmark => benchmark.Name);
++
++    [GlobalSetup]
++    public void Setup()
++    {
++        CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
++        _benchmark = BenchmarkCatalog.Create().First(benchmark => benchmark.Name == Case);
++        _benchmark.Validate(_benchmark.Run());
++    }
++
++    [Benchmark]
++    public object Execute() => _benchmark.Run();
++}
+diff --git a/benchmarks/PlistSerializer.Performance.csproj b/benchmarks/PlistSerializer.Performance.csproj
+new file mode 100644
+index 0000000..a5f4bb4
+--- /dev/null
++++ b/benchmarks/PlistSerializer.Performance.csproj
+@@ -0,0 +1,14 @@
++<Project Sdk="Microsoft.NET.Sdk">
++  <PropertyGroup>
++    <OutputType>Exe</OutputType>
++    <TargetFramework>net10.0</TargetFramework>
++    <ImplicitUsings>enable</ImplicitUsings>
++    <IsPackable>false</IsPackable>
++  </PropertyGroup>
++  <ItemGroup>
++    <ProjectReference Include="../PlistSerializer/PlistSerializer.csproj" />
++  </ItemGroup>
++  <ItemGroup>
++    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
++  </ItemGroup>
++</Project>
+diff --git a/benchmarks/Program.cs b/benchmarks/Program.cs
+new file mode 100644
+index 0000000..4fc027e
+--- /dev/null
++++ b/benchmarks/Program.cs
+@@ -0,0 +1,44 @@
++using System.Globalization;
++using BenchmarkDotNet.Configs;
++using BenchmarkDotNet.Jobs;
++using BenchmarkDotNet.Reports;
++using BenchmarkDotNet.Running;
++using Perfolizer.Horology;
++using PlistSerializer.Performance;
++
++CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
++
++if (args.SequenceEqual(["--list-cases"]))
++{
++    foreach (var benchmark in BenchmarkCatalog.Create())
++        Console.WriteLine(benchmark.Name);
++
++    return 0;
++}
++
++if (args.Length > 0 && args[0] == "--validate")
++{
++    if (args.Length == 3 && args[1] == "--culture")
++        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(args[2]);
++    else if (args.Length != 1)
++        throw new ArgumentException("Usage: --validate [--culture name]");
++
++    BenchmarkCatalog.ValidateAll();
++    return 0;
++}
++
++var job = Job.Default
++    .WithId("Suite")
++    .WithLaunchCount(1)
++    .WithWarmupCount(6)
++    .WithIterationCount(15)
++    .WithIterationTime(TimeInterval.FromMilliseconds(500))
++    .AsDefault();
++var config = DefaultConfig.Instance
++    .AddJob(job)
++    .WithSummaryStyle(SummaryStyle.Default.WithMaxParameterColumnWidth(80));
++var summaries = BenchmarkSwitcher.FromAssembly(typeof(PlistBenchmarks).Assembly).Run(args, config);
++
++return summaries.Any(summary => summary.HasCriticalValidationErrors || summary.Reports.Any(report => !report.Success))
++    ? 1
++    : 0;
+diff --git a/benchmarks/Scenario.cs b/benchmarks/Scenario.cs
+new file mode 100644
+index 0000000..4582537
+--- /dev/null
++++ b/benchmarks/Scenario.cs
+@@ -0,0 +1,118 @@
++using System.Text;
++
++namespace PlistSerializer.Performance;
++
++internal static class Scenario
++{
++    public static IEnumerable<BenchmarkCase> Models<T>(string name, Func<int, T> create,
++        Action<T, T, PlistFormat?> validate, Action<T, PNode> validateNode = null)
++    {
++        foreach (var count in new[] { 1, 1000 })
++        {
++            var source = Enumerable.Range(0, count).Select(create).ToArray();
++            var size = count == 1 ? "small" : "large";
++
++            foreach (var benchmark in RoundTrips<T[], T[]>($"{name}/{size}", source, (expected, actual, format) =>
++            {
++                Check.Equal(expected.Length, actual.Length);
++                for (var i = 0; i < expected.Length; i++)
++                    validate(expected[i], actual[i], format);
++            }, (models, node) =>
++            {
++                if (validateNode == null)
++                    return;
++
++                var array = (Nodes.ArrayNode)node;
++                for (var i = 0; i < models.Length; i++)
++                    validateNode(models[i], array[i]);
++            }))
++                yield return benchmark;
++        }
++    }
++
++    public static IEnumerable<BenchmarkCase> RoundTrips<TSource, TResult>(string name, TSource source,
++        Action<TSource, TResult, PlistFormat?> validate,
++        Action<TSource, PNode> validateNode = null, PlistFormat[] formats = null)
++    {
++        var node = Serializer.Serialize(source);
++        validateNode?.Invoke(source, node);
++
++        yield return new(name + "/serialize", () => Serializer.Serialize(source),
++            result => Check.Nodes(node, (PNode)result));
++        yield return new(name + "/deserialize", () => Deserializer.Deserialize<TResult>(node),
++            result => validate(source, (TResult)result, null));
++
++        foreach (var format in formats ?? [PlistFormat.Xml, PlistFormat.Binary])
++        {
++            using var stream = new MemoryStream();
++            Plist.Save(node, stream, format);
++            var bytes = stream.ToArray();
++
++            if (format == PlistFormat.Xml)
++            {
++                var xml = Encoding.UTF8.GetString(bytes);
++                yield return new(name + "/to-string", () => Plist.ToString(node),
++                    result => Check.Equal(xml, (string)result));
++
++                const string start = "<plist version=\"1.0\">\n";
++                var fragment = xml[(xml.IndexOf(start, StringComparison.Ordinal) + start.Length)..^"</plist>\n".Length];
++                yield return new(name + "/to-string-fragment", () => Plist.ToString(node, false),
++                    result => Check.Equal(fragment, (string)result));
++            }
++
++            yield return new(name + "/" + format + "/save", () =>
++            {
++                using var output = new MemoryStream();
++                Plist.Save(node, output, format);
++                return output.Length;
++            }, result => Check.Equal((long)bytes.Length, (long)result));
++
++            yield return new(name + "/" + format + "/load", () =>
++            {
++                using var input = new MemoryStream(bytes);
++                return Plist.Load(input);
++            }, result => Check.Nodes(node, (PNode)result, format));
++
++            yield return new(name + "/" + format + "/roundtrip", () =>
++            {
++                using var output = new MemoryStream();
++                Plist.Save(Serializer.Serialize(source), output, format);
++                output.Position = 0;
++                return Deserializer.Deserialize<TResult>(Plist.Load(output));
++            }, result => validate(source, (TResult)result, format));
++        }
++    }
++
++    public static IEnumerable<BenchmarkCase> Import<T>(string name, PNode node, Action<T> validate,
++        PlistFormat[] formats = null)
++    {
++        yield return new(name + "/deserialize", () => Deserializer.Deserialize<T>(node),
++            result => validate((T)result));
++
++        foreach (var format in formats ?? [PlistFormat.Xml, PlistFormat.Binary])
++        {
++            using var output = new MemoryStream();
++            Plist.Save(node, output, format);
++            var bytes = output.ToArray();
++
++            yield return new(name + "/" + format + "/load-deserialize", () =>
++            {
++                using var input = new MemoryStream(bytes);
++                return Deserializer.Deserialize<T>(Plist.Load(input));
++            }, result => validate((T)result));
++        }
++    }
++
++    public static BenchmarkCase Rejection<TException>(string name, Func<object> run) where TException : Exception
++        => new("rejections/" + name, () =>
++        {
++            try
++            {
++                return run();
++            }
++            catch (Exception error)
++            {
++                return error;
++            }
++        }, result => Check.That(result?.GetType() == typeof(TException), $"Expected {typeof(TException).Name}."));
++}

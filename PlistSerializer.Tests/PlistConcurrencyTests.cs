@@ -8,6 +8,25 @@ public class PlistConcurrencyTests
 {
     private const int Threads = 8;
 
+    [Theory]
+    [InlineData(PlistFormat.Xml)]
+    [InlineData(PlistFormat.Binary)]
+    public void RoundTrip_ManySmallPlistsOnManyThreads_Test(PlistFormat format)
+    {
+        var errors = RunInRounds(1000, (round, thread) =>
+        {
+            var model = new SimpleClass { Id = round * Threads + thread, Name = $"device-{thread}-{round}" };
+            using var stream = new MemoryStream();
+            Plist.Save(Serializer.Serialize(model), stream, format);
+            stream.Position = 0;
+            var result = Deserializer.Deserialize<SimpleClass>(Plist.Load(stream));
+            Assert.Equal(model.Id, result.Id);
+            Assert.Equal(model.Name, result.Name);
+        });
+
+        Assert.Empty(errors);
+    }
+
     [Fact]
     public void Serialize_ManyNewTypesOnManyThreads_Test()
     {
@@ -30,6 +49,42 @@ public class PlistConcurrencyTests
         var errors = RunInRounds(methods.Length, (round, _) => methods[round].Invoke(null, [node]));
 
         Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void Deserialize_NewPropertyMapsOnManyThreads_Test()
+    {
+        var deserialize = typeof(Deserializer).GetMethod(nameof(Deserializer.Deserialize));
+        var methods = NewTypes(typeof(Holder<>)).Select(t => deserialize.MakeGenericMethod(t)).ToArray();
+        var node = new DictionaryNode { ["Value"] = new NullNode() };
+
+        var errors = RunInRounds(methods.Length, (round, _) => methods[round].Invoke(null, [node]));
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void Serialize_SameNewTypeOnManyThreads_Test()
+    {
+        var objects = NewTypes(typeof(Holder<>))
+            .Select(t => typeof(Holder<>).MakeGenericType(t)).Select(Activator.CreateInstance).ToArray();
+
+        var errors = RunInRounds(objects.Length, (round, _) => Serializer.Serialize(objects[round]));
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void Deserialize_ConstructsSharedResolverOnce_Test()
+    {
+        var node = new DictionaryNode();
+        var errors = RunInRounds(1, (_, _) => Deserializer.Deserialize<CountedResolvedHolder>(node));
+
+        Assert.Multiple(() =>
+        {
+            Assert.Empty(errors);
+            Assert.Equal(1, CountingResolver.Instances);
+        });
     }
 
     // every closed generic type is new to the serializer's static caches

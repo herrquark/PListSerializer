@@ -42,7 +42,14 @@ public class StringNode : PNode<string>
             _value = value;
 
             // the binary format stores ASCII strings as one byte per character and all others as UTF-16
-            IsUtf16 = value.Any(c => c > 0x7F);
+            IsUtf16 = false;
+            foreach (var character in value)
+            {
+                if (character <= 0x7F)
+                    continue;
+                IsUtf16 = true;
+                break;
+            }
         }
     }
 
@@ -57,20 +64,25 @@ public class StringNode : PNode<string>
 
     internal override void ReadBinary(Stream stream, int nodeLength)
     {
-        var buf = new byte[nodeLength * (BinaryTag == 5 ? 1 : 2)];
+        if (nodeLength < 0)
+            throw new PlistFormatException("Invalid string length.");
+        var byteCount = checked(nodeLength * (IsUtf16 ? 2 : 1));
+        Span<byte> buf = byteCount <= 256 ? stackalloc byte[byteCount] : new byte[byteCount];
 
-        if (stream.Read(buf, 0, buf.Length) != buf.Length)
+        if (stream.Read(buf) != buf.Length)
             throw new PlistFormatException();
 
         var encoding = BinaryTag == 5 ? Encoding.UTF8 : Encoding.BigEndianUnicode;
 
-        Value = encoding.GetString(buf, 0, buf.Length);
+        Value = encoding.GetString(buf);
     }
 
     internal override void WriteBinary(Stream stream)
     {
         var encoding = IsUtf16 ? Encoding.BigEndianUnicode : Encoding.UTF8;
-        var buf = encoding.GetBytes(Value);
-        stream.Write(buf, 0, buf.Length);
+        var byteCount = encoding.GetByteCount(Value);
+        Span<byte> buf = byteCount <= 256 ? stackalloc byte[byteCount] : new byte[byteCount];
+        encoding.GetBytes(Value.AsSpan(), buf);
+        stream.Write(buf);
     }
 }

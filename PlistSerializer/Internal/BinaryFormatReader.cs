@@ -148,28 +148,28 @@ internal class BinaryFormatReader
         //      - 4 left bits are 0001
         //      - 4 right bits is the power of 2 required to represent the length
         //      - the following pow(2, x) bytes give us the length (big-endian)
-        var buf = new byte[1];
-
-        if (stream.Read(buf, 0, buf.Length) != buf.Length)
+        var marker = stream.ReadByte();
+        if (marker < 0)
             throw new PlistFormatException("Couldn't read node tag byte.");
 
-        var tag = (byte)((buf[0] >> 4) & 0x0F);
-        var length = buf[0] & 0x0F;
+        var tag = (byte)((marker >> 4) & 0x0F);
+        var length = marker & 0x0F;
 
         // length fits in 4 bits, or the node type has no count that could spill over
         if (length != 0xF || !HasCount(tag))
             return new NodeTagAndLength(tag, length);
 
         // read next byte to determine the length (in bytes) of actual length value
-        if (stream.Read(buf, 0, buf.Length) != buf.Length)
+        marker = stream.ReadByte();
+        if (marker < 0)
             throw new PlistFormatException("Couldn't read node length byte.");
 
         // verify that leftmost bits are 0001
-        if (((buf[0] >> 4) & 0x0F) != 0x1)
+        if (((marker >> 4) & 0x0F) != 0x1)
             throw new PlistFormatException("Invalid node length byte header.");
 
         // get the rightmost bits, giving us the number of bytes (power of 2) that we need
-        var byteCount = (int)Math.Pow(2, buf[0] & 0x0F);
+        var byteCount = 1 << (marker & 0x0F);
 
         // now get the length
         var lengthBuffer = new byte[byteCount];

@@ -6,29 +6,6 @@ namespace PlistSerializer.Internal;
 // creates concrete nodes from an XML tag or a binary type code
 internal static class NodeFactory
 {
-    private static readonly Dictionary<string, Type> XmlTags = [];
-    private static readonly Dictionary<byte, Type> BinaryTags = [];
-
-    static NodeFactory()
-    {
-        Register(new DictionaryNode());
-        Register(new IntegerNode());
-        Register(new RealNode());
-        Register(new StringNode());
-        Register(new ArrayNode());
-        Register(new DataNode());
-        Register(new DateNode());
-
-        // UIDs have no XML element, ReadXml finds them by their dict
-        RegisterBinary(new UidNode());
-
-        Register("string", 5, new StringNode());
-        Register("ustring", 6, new StringNode());
-
-        Register("true", 0, new BooleanNode());
-        Register("false", 0, new BooleanNode());
-    }
-
     // reads the node at the reader's position, turning a dict whose only entry is a non-negative
     // CF$UID integer into a UID; Apple also turns other numbers into UIDs, lossily, which this skips
     public static PNode ReadXml(XmlReader reader)
@@ -53,15 +30,32 @@ internal static class NodeFactory
         {
             0 when length == 0x00 => new NullNode(),
             0 when length == 0x0F => new FillNode(),
+            0 => new BooleanNode(),
+            1 => new IntegerNode(),
+            2 => new RealNode(),
+            3 => new DateNode(),
+            4 => new DataNode(),
+            5 => new StringNode(),
             6 => new StringNode { IsUtf16 = true },
-            _ when BinaryTags.ContainsKey(binaryTag) => (PNode)Activator.CreateInstance(BinaryTags[binaryTag]),
+            8 => new UidNode(),
+            0xA => new ArrayNode(),
+            0xD => new DictionaryNode(),
             _ => throw new PlistFormatException($"Unknown node - binary tag {binaryTag}")
         };
 
     public static PNode Create(string tag)
-        => XmlTags.ContainsKey(tag)
-            ? (PNode)Activator.CreateInstance(XmlTags[tag])
-            : throw new PlistFormatException($"Unknown node - XML tag \"{tag}\"");
+        => tag switch
+        {
+            "dict" => new DictionaryNode(),
+            "integer" => new IntegerNode(),
+            "real" => new RealNode(),
+            "string" or "ustring" => new StringNode(),
+            "array" => new ArrayNode(),
+            "data" => new DataNode(),
+            "date" => new DateNode(),
+            "true" or "false" or "boolean" => new BooleanNode(),
+            _ => throw new PlistFormatException($"Unknown node - XML tag \"{tag}\"")
+        };
 
     // holds the extended length of a binary node
     public static PNode CreateLengthElement(int length)
@@ -69,27 +63,4 @@ internal static class NodeFactory
 
     public static PNode CreateKeyElement(string key)
         => new StringNode(key);
-
-    private static void Register<T>(T node) where T : PNode, new()
-    {
-        if (!XmlTags.ContainsKey(node.XmlTag))
-            XmlTags.Add(node.XmlTag, node.GetType());
-
-        RegisterBinary(node);
-    }
-
-    private static void RegisterBinary<T>(T node) where T : PNode, new()
-    {
-        if (!BinaryTags.ContainsKey(node.BinaryTag))
-            BinaryTags.Add(node.BinaryTag, node.GetType());
-    }
-
-    private static void Register<T>(string xmlTag, byte binaryTag, T node) where T : PNode, new()
-    {
-        if (!XmlTags.ContainsKey(xmlTag))
-            XmlTags.Add(xmlTag, node.GetType());
-
-        if (!BinaryTags.ContainsKey(binaryTag))
-            BinaryTags.Add(binaryTag, node.GetType());
-    }
 }

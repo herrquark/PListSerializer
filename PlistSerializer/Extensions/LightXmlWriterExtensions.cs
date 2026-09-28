@@ -4,9 +4,19 @@ namespace PlistSerializer.Extensions;
 
 internal static class LightXmlWriterExtensions
 {
+    private static readonly string Indentation = new('\t', Plist.MaxDepth);
+
+    public static void WriteIndent(this LightXmlWriter writer, int indent)
+    {
+        if (indent <= Indentation.Length)
+            writer.Writer.Write(Indentation.AsSpan(0, indent));
+        else
+            writer.WriteRaw(new string('\t', indent));
+    }
+
     public static void WriteStartElementWithIndent(this LightXmlWriter writer, string name, int indent, bool newLine = false)
     {
-        writer.WriteRaw(new string('\t', indent));
+        writer.WriteIndent(indent);
         writer.WriteStartElement(name);
         if (newLine)
             writer.WriteRaw("\n");
@@ -17,7 +27,7 @@ internal static class LightXmlWriterExtensions
 
     public static void WriteEndElementWithIndent(this LightXmlWriter writer, string name, int indent, bool newLine = false)
     {
-        writer.WriteRaw(new string('\t', indent));
+        writer.WriteIndent(indent);
         writer.WriteEndElement(name);
         if (newLine)
             writer.WriteRaw("\n");
@@ -28,7 +38,7 @@ internal static class LightXmlWriterExtensions
 
     public static void WriteSelfClosingLineWithIndent(this LightXmlWriter writer, string name, int indent)
     {
-        writer.WriteRaw(new string('\t', indent));
+        writer.WriteIndent(indent);
         writer.WriteStartElement(name);
         writer.WriteEndElement(name);
         writer.WriteRaw("\n");
@@ -36,7 +46,7 @@ internal static class LightXmlWriterExtensions
 
     public static void WriteElementLineWithValue(this LightXmlWriter writer, string name, string value, int indent)
     {
-        writer.WriteRaw(new string('\t', indent));
+        writer.WriteIndent(indent);
         writer.WriteStartElement(name);
         writer.WriteValue(value);
         writer.WriteEndElement(name);

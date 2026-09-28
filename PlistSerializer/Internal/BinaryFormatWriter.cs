@@ -1,5 +1,4 @@
 using System.Buffers.Binary;
-using PlistSerializer.Extensions;
 using PlistSerializer.Nodes;
 
 namespace PlistSerializer.Internal;
@@ -37,28 +36,23 @@ internal class BinaryFormatWriter
             _ => sizeof(int)
         };
 
+        Span<byte> offsetBuffer = stackalloc byte[4];
         for (var i = 0; i < offsets.Count; i++)
         {
-            byte[] buf = offsetSize switch
-            {
-                1 => [(byte)offsets[i]],
-                2 => ((short)offsets[i]).GetBytes(),
-                4 => offsets[i].GetBytes(),
-                _ => null
-            };
-
-            stream.Write(buf, 0, buf.Length);
+            FormatIndex(offsets[i], offsetBuffer.Slice(0, offsetSize));
+            stream.Write(offsetBuffer.Slice(0, offsetSize));
         }
 
-        var trailer = new byte[32];
+        Span<byte> trailer = stackalloc byte[32];
+        trailer.Clear();
         trailer[6] = offsetSize;
         trailer[7] = nodeIndexSize;
 
-        nodeCount.GetBytes().CopyTo(trailer, 12);
-        topOffsetIndex.GetBytes().CopyTo(trailer, 20);
-        offsetTableOffset.GetBytes().CopyTo(trailer, 28);
+        BinaryPrimitives.WriteInt32BigEndian(trailer.Slice(12), nodeCount);
+        BinaryPrimitives.WriteInt32BigEndian(trailer.Slice(20), topOffsetIndex);
+        BinaryPrimitives.WriteInt32BigEndian(trailer.Slice(28), offsetTableOffset);
 
-        stream.Write(trailer, 0, trailer.Length);
+        stream.Write(trailer);
     }
 
     // returns the index of the written node
@@ -67,20 +61,13 @@ internal class BinaryFormatWriter
         var nodeIndex = offsets.Count;
         if (node.IsBinaryUnique && node is IEquatable<PNode>)
         {
-            if (!_uniqueElements.ContainsKey(node.BinaryTag))
-                _uniqueElements.Add(node.BinaryTag, []);
+            if (!_uniqueElements.TryGetValue(node.BinaryTag, out var elements))
+                _uniqueElements.Add(node.BinaryTag, elements = []);
 
-            if (_uniqueElements[node.BinaryTag].ContainsKey(node))
-            {
-                if (node is BooleanNode)
-                    nodeIndex = _uniqueElements[node.BinaryTag][node];
-                else
-                    return _uniqueElements[node.BinaryTag][node];
-            }
-            else
-            {
-                _uniqueElements[node.BinaryTag][node] = nodeIndex;
-            }
+            if (elements.TryGetValue(node, out var existingIndex))
+                return existingIndex;
+
+            elements.Add(node, nodeIndex);
         }
 
         var offset = (int)stream.Position;
@@ -121,7 +108,7 @@ internal class BinaryFormatWriter
         for (var i = 0; i < array.Count; i++)
         {
             var nodeIndex = WriteInternal(stream, nodeIndexSize, offsets, array[i]);
-            FormatIndex(nodeIndex, nodeIndexSize).CopyTo(nodes, nodeIndexSize * i);
+            FormatIndex(nodeIndex, nodes.AsSpan(nodeIndexSize * i, nodeIndexSize));
         }
 
         stream.Seek(streamPos, SeekOrigin.Begin);
@@ -137,17 +124,17 @@ internal class BinaryFormatWriter
         stream.Write(keys, 0, keys.Length);
         stream.Write(values, 0, values.Length);
 
-        var entries = dictionary.ToArray();
-
-        for (var i = 0; i < dictionary.Count; i++)
+        var i = 0;
+        foreach (var key in dictionary.Keys)
         {
-            var nodeIndex = WriteInternal(stream, nodeIndexSize, offsets, NodeFactory.CreateKeyElement(entries[i].Key));
-            FormatIndex(nodeIndex, nodeIndexSize).CopyTo(keys, nodeIndexSize * i);
+            var nodeIndex = WriteInternal(stream, nodeIndexSize, offsets, NodeFactory.CreateKeyElement(key));
+            FormatIndex(nodeIndex, keys.AsSpan(nodeIndexSize * i++, nodeIndexSize));
         }
-        for (var i = 0; i < dictionary.Count; i++)
+        i = 0;
+        foreach (var value in dictionary.Values)
         {
-            var nodeIndex = WriteInternal(stream, nodeIndexSize, offsets, entries[i].Value);
-            FormatIndex(nodeIndex, nodeIndexSize).CopyTo(values, nodeIndexSize * i);
+            var nodeIndex = WriteInternal(stream, nodeIndexSize, offsets, value);
+            FormatIndex(nodeIndex, values.AsSpan(nodeIndexSize * i++, nodeIndexSize));
         }
 
         stream.Seek(streamPos, SeekOrigin.Begin);
@@ -185,25 +172,21 @@ internal class BinaryFormatWriter
         return 1;
     }
 
-    private static byte[] FormatIndex(int index, byte nodeIndexSize)
+    private static void FormatIndex(int index, Span<byte> buffer)
     {
-        var buf = new byte[nodeIndexSize];
-
-        switch (nodeIndexSize)
+        switch (buffer.Length)
         {
             case 1:
-                buf[0] = (byte)index;
+                buffer[0] = (byte)index;
                 break;
             case 2:
-                BinaryPrimitives.WriteInt16BigEndian(buf, (short)index);
+                BinaryPrimitives.WriteInt16BigEndian(buffer, (short)index);
                 break;
             case 4:
-                BinaryPrimitives.WriteInt32BigEndian(buf, index);
+                BinaryPrimitives.WriteInt32BigEndian(buffer, index);
                 break;
             default:
                 throw new PlistFormatException("Invalid node index size");
         }
-
-        return buf;
     }
 }

@@ -49,22 +49,28 @@ public static class Plist
     /// <returns>The plist as XML.</returns>
     public static string ToString(PNode rootNode, bool writePlistMeta = true)
     {
-        using var xmlStream = new MemoryStream();
-        WriteXmlToStream(rootNode, xmlStream, writePlistMeta);
-
-        return Encoding.UTF8.GetString(xmlStream.ToArray(), 0, (int)xmlStream.Length);
+        using var writer = new StringWriter();
+        WriteXml(rootNode, writer, writePlistMeta);
+        return writer.ToString();
     }
 
     private static bool IsFormatBinary(Stream stream)
     {
-        var buf = new byte[8];
+        Span<byte> buf = stackalloc byte[8];
 
         // read in the first 8 bytes and rewind
-        stream.Read(buf, 0, buf.Length);
+        var length = 0;
+        while (length < buf.Length)
+        {
+            var read = stream.Read(buf.Slice(length));
+            if (read == 0)
+                break;
+            length += read;
+        }
         stream.Seek(0, SeekOrigin.Begin);
 
         // compare to the known indicator (TODO: validate the version as well)
-        return Encoding.UTF8.GetString(buf, 0, 6) == "bplist";
+        return length >= 6 && buf.Slice(0, 6).SequenceEqual("bplist"u8);
     }
 
     private static PNode LoadAsBinary(Stream stream)
@@ -93,8 +99,13 @@ public static class Plist
 
     private static void WriteXmlToStream(PNode rootNode, Stream stream, bool writePlistMeta = true)
     {
-        using var streamWriter = new StreamWriter(stream, Utf8NoByteOrderMark, 2048, true);
-        using var xmlWriter = new LightXmlWriter(streamWriter);
+        using var streamWriter = new StreamWriter(stream, Utf8NoByteOrderMark, 512, true);
+        WriteXml(rootNode, streamWriter, writePlistMeta);
+    }
+
+    private static void WriteXml(PNode rootNode, TextWriter writer, bool writePlistMeta)
+    {
+        using var xmlWriter = new LightXmlWriter(writer);
 
         if (writePlistMeta)
             xmlWriter.WritePlistHeader();

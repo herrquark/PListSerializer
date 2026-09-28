@@ -2,6 +2,7 @@ using System.Collections;
 using System.ComponentModel;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using PlistSerializer.Extensions;
 using PlistSerializer.Nodes;
 
@@ -12,6 +13,8 @@ namespace PlistSerializer;
 /// </summary>
 public static class Deserializer
 {
+    private static readonly ConditionalWeakTable<Type, Dictionary<string, PropertyInfo>> PropertiesCache = new();
+
     /// <summary>
     /// Deserializes a plist node into an instance of <typeparamref name="TOut"/>.
     /// </summary>
@@ -141,14 +144,11 @@ public static class Deserializer
         var resolvedType = type.GetResolver()?.ResolveType(dictionaryNode) ?? type;
 
         var instance = Activator.CreateInstance(resolvedType);
-        var properties = resolvedType.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-            .Where(p => p.IsPlistMember())
-            .ResolvePlistKeys();
+        var properties = PropertiesCache.GetValue(resolvedType, BuildProperties);
 
         foreach (var (key, value) in dictionaryNode)
         {
-            var property = properties.FirstOrDefault(x => x.GetName() == key);
-            if (property == null)
+            if (!properties.TryGetValue(key, out var property))
                 continue;
 
             property.SetValue(instance, Deserialize(property.PropertyType, value));
@@ -156,6 +156,12 @@ public static class Deserializer
 
         return instance;
     }
+
+    private static Dictionary<string, PropertyInfo> BuildProperties(Type type)
+        => type.GetProperties(BindingFlags.Instance | BindingFlags.Public)
+            .Where(p => p.IsPlistMember())
+            .ResolvePlistKeys()
+            .ToDictionary(p => p.GetName(), StringComparer.Ordinal);
 
     private static object ConvertToType(object value, Type type)
     {
@@ -167,6 +173,7 @@ public static class Deserializer
         return type switch
         {
             _ when value is null => null,
+            _ when type == value.GetType() => value,
             _ when type == typeof(TimeSpan) => TimeSpan.TryParse(value.ToString(), culture, out var result) ? result : null,
             _ when type == typeof(Uri) => new Uri(value.ToString(), UriKind.RelativeOrAbsolute),
             _ when type == typeof(Guid) => Guid.TryParse(value.ToString(), out var result) ? result : null,

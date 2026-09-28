@@ -1,4 +1,5 @@
 using System.Xml;
+using PlistSerializer.Extensions;
 using XmlTools;
 
 namespace PlistSerializer;
@@ -46,7 +47,7 @@ public abstract class PNode<T> : PNode, IEquatable<PNode>
     internal override void WriteXml(LightXmlWriter writer, int indent = 0)
     {
         if (indent > 0)
-            writer.WriteRaw(new string('\t', indent));
+            writer.WriteIndent(indent);
 
         writer.WriteStartElement(XmlTag);
         writer.WriteValue(ToXmlString());

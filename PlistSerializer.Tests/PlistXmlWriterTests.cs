@@ -6,6 +6,18 @@ namespace PlistSerializer.Tests;
 
 public class PlistXmlWriterTests
 {
+    [Theory]
+    [InlineData(1)]
+    [InlineData(10000)]
+    public void ToString_MatchesUtf8Stream_Test(int count)
+    {
+        var node = Serializer.Serialize(Enumerable.Repeat("é😂<&>\"", count).ToArray());
+        using var stream = new MemoryStream();
+        Plist.Save(node, stream, PlistFormat.Xml);
+
+        Assert.Equal(Encoding.UTF8.GetString(stream.ToArray()), Plist.ToString(node));
+    }
+
     [Fact]
     public void Save_XmlRoundTrip_Test()
     {

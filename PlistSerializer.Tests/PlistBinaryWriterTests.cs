@@ -5,6 +5,64 @@ namespace PlistSerializer.Tests;
 
 public class PlistBinaryWriterTests
 {
+    [Theory]
+    [InlineData(0)]
+    [InlineData(14)]
+    [InlineData(15)]
+    [InlineData(255)]
+    [InlineData(256)]
+    [InlineData(32768)]
+    public void Save_BinaryReferenceWidths_Test(int count)
+    {
+        var node = new DictionaryNode();
+        for (var i = 0; i < count; i++)
+            node.Add("key-" + i, new IntegerNode(i));
+
+        using var stream = new MemoryStream();
+        Plist.Save(node, stream, PlistFormat.Binary);
+        stream.Position = 0;
+        var result = Assert.IsType<DictionaryNode>(Plist.Load(stream));
+
+        Assert.Equal(count, result.Count);
+        Assert.All(node, pair => Assert.Equal(pair.Value, result[pair.Key]));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(127)]
+    [InlineData(128)]
+    [InlineData(129)]
+    [InlineData(255)]
+    [InlineData(256)]
+    [InlineData(257)]
+    [InlineData(100000)]
+    public void Save_BinaryStringBufferBoundaries_Test(int length)
+    {
+        var strings = new[] { new string('x', length), new string('é', length) };
+        var node = Serializer.Serialize(strings);
+        using var stream = new MemoryStream();
+        Plist.Save(node, stream, PlistFormat.Binary);
+        stream.Position = 0;
+
+        Assert.Equal(strings, Deserializer.Deserialize<string[]>(Plist.Load(stream)));
+    }
+
+    [Fact]
+    public void Save_BinaryEqualBooleans_Test()
+    {
+        var values = new[] { true, true, false, false, true };
+        using var stream = new MemoryStream();
+        Plist.Save(Serializer.Serialize(values), stream, PlistFormat.Binary);
+        var bytes = stream.ToArray();
+        stream.Position = 0;
+
+        Assert.Multiple(() =>
+        {
+            Assert.Equal(3UL, BinaryPrimitives.ReadUInt64BigEndian(bytes.AsSpan(bytes.Length - 24)));
+            Assert.Equal(values, Deserializer.Deserialize<bool[]>(Plist.Load(stream)));
+        });
+    }
+
     [Fact]
     public void Save_BinaryRoundTrip_Test()
     {

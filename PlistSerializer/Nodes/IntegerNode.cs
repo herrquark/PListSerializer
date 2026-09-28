@@ -1,5 +1,5 @@
+using System.Buffers.Binary;
 using System.Globalization;
-using PlistSerializer.Extensions;
 
 namespace PlistSerializer.Nodes;
 
@@ -47,32 +47,27 @@ public class IntegerNode : PNode<long>
 
     internal override void ReadBinary(Stream stream, int nodeLength)
     {
-        var buf = new byte[1 << nodeLength];
+        if (nodeLength is < 0 or > 3)
+            throw new PlistFormatException("Int > 64Bit");
+        Span<byte> buf = stackalloc byte[1 << nodeLength];
 
-        if (stream.Read(buf, 0, buf.Length) != buf.Length)
+        if (stream.Read(buf) != buf.Length)
             throw new PlistFormatException();
 
         Value = nodeLength switch
         {
             0 => buf[0],
-            1 => buf.ToUInt16(),
-            2 => buf.ToUInt32(),
-            3 => buf.ToInt64(),
+            1 => BinaryPrimitives.ReadUInt16BigEndian(buf),
+            2 => BinaryPrimitives.ReadUInt32BigEndian(buf),
+            3 => BinaryPrimitives.ReadInt64BigEndian(buf),
             _ => throw new PlistFormatException("Int > 64Bit"),
         };
     }
 
     internal override void WriteBinary(Stream stream)
     {
-        byte[] buf = BinaryLength switch
-        {
-            0 => [(byte)Value],
-            1 => ((ushort)Value).GetBytes(),
-            2 => ((uint)Value).GetBytes(),
-            3 => Value.GetBytes(),
-            _ => throw new Exception($"Unexpected length: {BinaryLength}."),
-        };
-
-        stream.Write(buf, 0, buf.Length);
+        Span<byte> buffer = stackalloc byte[8];
+        BinaryPrimitives.WriteInt64BigEndian(buffer, Value);
+        stream.Write(buffer.Slice(8 - (1 << BinaryLength)));
     }
 }

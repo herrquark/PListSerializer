@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/PlistSerializer.Performance.csproj" />
+  </Folder>
   <Project Path="PlistSerializer.Tests/PlistSerializer.Tests.csproj" />
   <Project Path="PlistSerializer/PlistSerializer.csproj" />
 </Solution>

@@ -47,7 +47,9 @@ Reading either format and serializing stop at `Plist.MaxDepth` (512) levels of n
 
 ## Thread safety
 
-Both entry points are static and cache reflection results in static `ConcurrentDictionary` instances (`Serializer.MembersCache`, `TypeExtensions.ResolverCache`). Populate a cache through `GetOrAdd` or the indexer, which tolerate two threads adding the same key. A check-then-`Add` throws on that collision and has already caused one race. Every new cache gets a case in `PlistConcurrencyTests`, which closes a generic holder over every exported BCL class so that each call meets an uncached type, with a `Barrier` releasing all threads into each round together. That test is timing-based, so a single green run is weak evidence. Repeat it a few times.
+Both entry points are static and cache reflection results in `ConditionalWeakTable` instances (`Serializer.MembersCache`, `Deserializer.PropertiesCache`, `TypeExtensions.ResolverCache`). Weak keys let collectible model assemblies unload even when cached metadata refers back to the type. Populate these caches through `GetValue`; a resolver is wrapped in `Lazy` so concurrent first calls construct only one shared instance. Cache metadata by type, never caller objects or plist nodes.
+
+Every new cache gets cases in `PlistMemoryTests` and `PlistConcurrencyTests`. The concurrency tests close a generic holder over every exported BCL class so that each round meets an uncached type, with a `Barrier` releasing all threads together. These tests are timing-based, so repeat them a few times. For allocation and throughput measurements on small and large XML and binary plists, follow `benchmarks/README.md`.
 
 ## Language and targets
 

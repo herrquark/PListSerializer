@@ -1,8 +1,8 @@
 using System.Collections;
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using PlistSerializer.Extensions;
 using PlistSerializer.Nodes;
 
@@ -13,7 +13,7 @@ namespace PlistSerializer;
 /// </summary>
 public static class Serializer
 {
-    private static readonly ConcurrentDictionary<Type, GetterMember[]> MembersCache = [];
+    private static readonly ConditionalWeakTable<Type, GetterMember[]> MembersCache = new();
 
     /// <summary>
     /// Serializes an object into a plist node.
@@ -72,12 +72,12 @@ public static class Serializer
     {
         var dictNode = new DictionaryNode();
 
-        foreach (var key in dict.Keys)
+        foreach (DictionaryEntry entry in dict)
         {
-            if (dict[key] is null)
+            if (entry.Value is null)
                 continue;
 
-            dictNode.Add(key.ToString(), Serialize(dict[key], depth + 1));
+            dictNode.Add(entry.Key.ToString(), Serialize(entry.Value, depth + 1));
         }
 
         return dictNode;
@@ -101,28 +101,26 @@ public static class Serializer
     private static PNode SerializeEnumerable(IEnumerable list, int depth)
     {
         var node = new ArrayNode();
-        node.AddRange(list.Cast<object>().Where(x => x is not null).Select(x => Serialize(x, depth + 1)));
+        foreach (var value in list)
+            if (value is not null)
+                node.Add(Serialize(value, depth + 1));
         return node;
     }
 
     private static GetterMember[] GetMembers(Type type)
-    {
-        if (MembersCache.TryGetValue(type, out var members))
-            return members;
+        => MembersCache.GetValue(type, BuildMembers);
 
+    private static GetterMember[] BuildMembers(Type type)
+    {
         var props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public)
             .Where(p => p.IsPlistMember());
 
         var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public);
 
-        members = [.. props.Concat<MemberInfo>(fields)
+        return [.. props.Concat<MemberInfo>(fields)
             .ResolvePlistKeys()
             .Select(BuildGetterMember)
             .OrderBy(g => g.Name, StringComparer.OrdinalIgnoreCase)];
-
-        MembersCache[type] = members;
-
-        return members;
     }
 
     private static GetterMember BuildGetterMember(MemberInfo m)

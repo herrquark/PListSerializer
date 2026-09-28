@@ -9,10 +9,6 @@ namespace PlistSerializer.Nodes;
 /// </summary>
 public class StringNode : PNode<string>
 {
-    private static readonly byte[] Utf8Bytes = Enumerable.Range(0, 256).Select(i => (byte)i).ToArray();
-
-    private static readonly HashSet<char> Utf8Chars = new(Encoding.UTF8.GetChars(Utf8Bytes));
-
     private string _value;
 
     internal override string XmlTag => "string";
@@ -45,17 +41,8 @@ public class StringNode : PNode<string>
         {
             _value = value;
 
-            // detect the encoding the binary format needs
-            foreach (var c in value)
-            {
-                if (!Utf8Chars.Contains(c))
-                {
-                    IsUtf16 = true;
-                    return;
-                }
-            }
-
-            IsUtf16 = false;
+            // the binary format stores ASCII strings as one byte per character and all others as UTF-16
+            IsUtf16 = value.Any(c => c > 0x7F);
         }
     }
 

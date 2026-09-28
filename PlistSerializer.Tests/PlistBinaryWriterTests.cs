@@ -94,6 +94,20 @@ public class PlistBinaryWriterTests
         });
     }
 
+    [Theory]
+    [InlineData("ascii")]
+    [InlineData("é")]
+    [InlineData("a�b")]
+    [InlineData("😂test")]
+    public void Save_BinaryString_Test(string value)
+    {
+        using var stream = new MemoryStream();
+        Plist.Save(new StringNode(value), stream, PlistFormat.Binary);
+
+        stream.Seek(0, SeekOrigin.Begin);
+        Assert.Equal(value, Assert.IsType<StringNode>(Plist.Load(stream)).Value);
+    }
+
     [Fact]
     public void Save_BinaryLocalDate_Test()
     {

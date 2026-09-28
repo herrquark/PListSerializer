@@ -95,6 +95,19 @@ public class PlistBinaryWriterTests
     }
 
     [Fact]
+    public void Save_BinaryLocalDate_Test()
+    {
+        // a local time is only off by its UTC offset where that offset is not zero
+        var utc = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        using var stream = new MemoryStream();
+        Plist.Save(new DateNode(utc.ToLocalTime()), stream, PlistFormat.Binary);
+
+        stream.Seek(0, SeekOrigin.Begin);
+        Assert.Equal(utc, Assert.IsType<DateNode>(Plist.Load(stream)).Value);
+    }
+
+    [Fact]
     public void Save_BinaryEqualUids_Test()
     {
         var node = new ArrayNode { new UidNode(7), new UidNode(7), new IntegerNode(7), new IntegerNode(7) };

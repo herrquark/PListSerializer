@@ -57,7 +57,8 @@ public sealed class DateNode : PNode<DateTime>
 
     internal override void WriteBinary(Stream stream)
     {
-        var buf = (Value - ReferenceDate).TotalSeconds.GetBytes();
+        // subtraction ignores DateTimeKind, so a local time would be off by its UTC offset
+        var buf = (Value.ToUniversalTime() - ReferenceDate).TotalSeconds.GetBytes();
         stream.Write(buf, 0, buf.Length);
     }
 }

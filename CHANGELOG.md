@@ -14,11 +14,21 @@
  - binary integers use Apple's widths, where 1, 2 and 4-byte integers are unsigned: values such as 40000 in Apple's files no longer read as negative, and negative numbers are written in 8 bytes, which Apple and Python read correctly
  - XML dates are written without fractional seconds, which Apple and Python rejected, and in the Gregorian calendar whatever the current culture
  - binary dates of local and unspecified `DateTime`s are no longer off by their UTC offset
+ - XML dates load as UTC, as binary dates do, instead of local time, and a date without a trailing `Z` is read as UTC
  - empty `<string/>` and `<key/>` elements load as empty strings
+ - reals written by Python as `inf` and `-inf` load as infinities
  - strings containing U+FFFD are no longer corrupted in binary
  - a binary plist with an object that contains itself throws `PlistFormatException` instead of overflowing the stack
+ - reading either format and serializing throw `PlistFormatException` beyond 512 levels of nesting, which overflowed the stack, so a model with a reference cycle throws too
+ - a binary plist whose shared objects expand past the larger of its byte count and 1,000,000 nodes throws `PlistFormatException`, since a file of a few hundred bytes could take forever to load
  - the serializer writes `TimeSpan` and `Uri` as strings instead of empty dicts, and the deserializer reads relative `Uri`s
+ - `DateTimeOffset` is written as a date, its moment in UTC, instead of an empty dict, and a date is read back into it at offset +00:00
  - scalars written as strings are formatted and parsed with the invariant culture
+ - a member hidden with `new` and a different type gives way to the hiding one on both sides, where the serializer threw `ArgumentException`, and two members claiming one plist key throw `PlistFormatException` naming both
+ - an override keeps the `[PlistName]` and `[DefaultValue]` of its base declaration unless it declares its own
+ - enum and nullable enum members read integers and names in any case alike, where an integer reset an enum to 0 and threw for a nullable one
+ - writing a `NullNode` or `FillNode` to XML throws `PlistFormatException`, since the `<null/>` and `<fill/>` it wrote could not be read by Apple, Python or this library
+ - the deserializer gives an `object` target, such as a `Dictionary<string, object>` value, a dict as `Dictionary<string, object>`, an array as `List<object>` and data as `byte[]`, where it gave an empty `object` or `null`
 
 ## PListNet.Quark (merged into PlistSerializer.Quark 2.0.0)
 

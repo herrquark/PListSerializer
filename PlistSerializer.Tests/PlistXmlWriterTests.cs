@@ -173,6 +173,22 @@ public class PlistXmlWriterTests
     }
 
     [Fact]
+    public void ToString_NullAndFill_Test()
+    {
+        // Python writes None to binary plists only, and Apple reads nulls from binary only
+        using var binary = new MemoryStream();
+        Plist.Save(new ArrayNode { new NullNode() }, binary, PlistFormat.Binary);
+        binary.Seek(0, SeekOrigin.Begin);
+
+        Assert.Multiple(() =>
+        {
+            Assert.IsType<NullNode>(Assert.IsType<ArrayNode>(Plist.Load(binary))[0]);
+            Assert.Throws<PlistFormatException>(() => Plist.ToString(new ArrayNode { new NullNode() }));
+            Assert.Throws<PlistFormatException>(() => Plist.ToString(new ArrayNode { new FillNode() }));
+        });
+    }
+
+    [Fact]
     public void ToString_Uid_Test()
     {
         var node = new DictionaryNode { ["a"] = new UidNode(256) };

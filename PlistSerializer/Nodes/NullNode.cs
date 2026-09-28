@@ -1,5 +1,4 @@
 using System.Xml;
-using PlistSerializer.Extensions;
 using XmlTools;
 
 namespace PlistSerializer.Nodes;
@@ -30,6 +29,7 @@ public class NullNode : PNode
     internal override void ReadXml(XmlReader reader)
         => reader.ReadStartElement(XmlTag);
 
+    // Apple and Python reject a <null/> element, and so does this library's reader
     internal override void WriteXml(LightXmlWriter writer, int indent = 0)
-        => writer.WriteSelfClosingLineWithIndent(XmlTag, indent);
+        => throw new PlistFormatException("XML plists have no null, so a NullNode can only be written in binary.");
 }

@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using PlistSerializer.Nodes;
 
 namespace PlistSerializer.Tests;
@@ -157,6 +158,28 @@ public class PlistBinaryReaderTests
         Assert.Throws<PlistFormatException>(() => Plist.Load(stream));
     }
 
+    [Fact]
+    public void Load_BinaryNestingLimit_Test()
+    {
+        // deeper recursion could overflow the stack, which ends the process instead of throwing
+        Assert.Multiple(() =>
+        {
+            Assert.IsType<ArrayNode>(Plist.Load(new MemoryStream(NestedArrays(512, 1))));
+            Assert.Throws<PlistFormatException>(() => Plist.Load(new MemoryStream(NestedArrays(513, 1))));
+        });
+    }
+
+    [Fact]
+    public void Load_BinarySharedCollections_Test()
+    {
+        // each array holds the next one twice, so 12 levels expand to 4095 nodes and 21 levels to over 2 million
+        Assert.Multiple(() =>
+        {
+            Assert.IsType<ArrayNode>(Plist.Load(new MemoryStream(NestedArrays(12, 2))));
+            Assert.Throws<PlistFormatException>(() => Plist.Load(new MemoryStream(NestedArrays(21, 2))));
+        });
+    }
+
     // wraps a single object in the header, a one-entry offset table and the trailer of a binary plist
     private static byte[] WrapInBinaryPlist(byte[] rootObject)
     {
@@ -168,5 +191,38 @@ public class PlistBinaryReaderTests
         trailer[31] = (byte)(header.Length + rootObject.Length); // offset table position
 
         return [.. header, .. rootObject, (byte)header.Length, .. trailer];
+    }
+
+    // a binary plist of arrays that each hold the next one width times, with the innermost empty
+    private static byte[] NestedArrays(int levels, int width)
+    {
+        var header = "bplist00"u8.ToArray();
+        var objects = new List<byte>();
+        var offsets = new List<byte>();
+
+        for (var i = 0; i < levels; i++)
+        {
+            offsets.AddRange(BigEndian(header.Length + objects.Count));
+
+            var count = i < levels - 1 ? width : 0;
+            objects.Add((byte)(0xA0 | count));
+            for (var j = 0; j < count; j++)
+                objects.AddRange(BigEndian(i + 1));
+        }
+
+        var trailer = new byte[32];
+        trailer[6] = 4; // offset size
+        trailer[7] = 4; // object reference size
+        BinaryPrimitives.WriteInt64BigEndian(trailer.AsSpan(8), levels); // object count
+        BinaryPrimitives.WriteInt64BigEndian(trailer.AsSpan(24), header.Length + objects.Count); // offset table position
+
+        return [.. header, .. objects, .. offsets, .. trailer];
+    }
+
+    private static byte[] BigEndian(int value)
+    {
+        var bytes = new byte[4];
+        BinaryPrimitives.WriteInt32BigEndian(bytes, value);
+        return bytes;
     }
 }

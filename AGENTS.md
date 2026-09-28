@@ -35,11 +35,15 @@ Both sides key a member by its `[PlistName]`, else its C# name, through `GetName
 
 ### Adding type support
 
-Each side dispatches in one `switch` expression: `Serializer.Serialize` and `Deserializer.Deserialize(Type, PNode)`. Add an arm there, and place it carefully because the first match wins. On both sides the first arm handles nodes, since `ArrayNode` and `DictionaryNode` would otherwise match the collection arms. `string` and `byte[]` are both `IEnumerable`, so their serializer arms come before the enumerable arm. In the deserializer, `IsArray` comes before the scalar arms so that `byte[]` takes `<data>`. Scalars without their own serializer arm (`short`, `uint`, `char`, and so on) are written as `<string>` and parsed back by `ConvertToType`, which unwraps `Nullable<T>`, handles `TimeSpan`/`Uri`/`Guid` and a date into `DateTimeOffset` specially, then tries `TypeConverter` and finally `Convert.ChangeType`.
+Each side dispatches in one `switch` expression: `Serializer.Serialize(object, int)` and `Deserializer.Deserialize(Type, PNode)`. Add an arm there, and place it carefully because the first match wins. On both sides the first arm handles nodes, since `ArrayNode` and `DictionaryNode` would otherwise match the collection arms. `string` and `byte[]` are both `IEnumerable`, so their serializer arms come before the enumerable arm. In the deserializer, `IsArray` comes before the scalar arms so that `byte[]` takes `<data>`. Scalars without their own serializer arm (`short`, `uint`, `char`, and so on) are written as `<string>` and parsed back by `ConvertToType`, which unwraps `Nullable<T>`, handles `TimeSpan`/`Uri`/`Guid` and a date into `DateTimeOffset` specially, then tries `TypeConverter` and finally `Convert.ChangeType`.
 
 ### Type resolvers
 
 `[PlistTypeResolver(typeof(R))]` on a class makes the deserializer call `R.ResolveType(node)` whenever that class is the declared type, and `null` falls back to the declared type. The serializer has no counterpart; it writes the runtime type's members. Only one `R` instance is created per decorated class and it is shared across threads, so resolvers stay stateless.
+
+## Nesting limits
+
+Reading either format and serializing stop at `Plist.MaxDepth` (512) levels of nesting, and the binary reader also stops once shared references expand past the larger of the file's byte count and 1,000,000 nodes. Both throw `PlistFormatException`, because the alternative is a stack overflow, which ends the process instead of throwing, or an exponential expansion from a file of a few hundred bytes. A new recursive path through plist nodes or object graphs counts its depth against `Plist.MaxDepth` the same way.
 
 ## Thread safety
 

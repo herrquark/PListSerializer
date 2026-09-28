@@ -11,6 +11,10 @@ namespace PlistSerializer;
 /// </summary>
 public static class Plist
 {
+    // the deepest nesting that reading and serializing accept, counting the root as 1, since deeper
+    // recursion can overflow a 1 MB stack, which ends the process instead of throwing
+    internal const int MaxDepth = 512;
+
     private static readonly Encoding Utf8NoByteOrderMark = new UTF8Encoding(false);
 
     /// <summary>

@@ -8,6 +8,8 @@ namespace PlistSerializer.Internal;
 // https://medium.com/@karaiskc/understanding-apples-binary-property-list-format-281e6da00dbd
 internal class BinaryFormatReader
 {
+    private const long NodeCountFloor = 1_000_000;
+
     public PNode Read(Stream stream)
     {
         ValidatePlistFileHeader(stream);
@@ -96,6 +98,13 @@ internal class BinaryFormatReader
         // an object that contains itself would recurse until the stack overflows
         if (!readerState.Ancestors.Add(nodeIndex))
             throw new PlistFormatException($"Invalid plist file: object {nodeIndex} contains itself.");
+
+        if (readerState.Ancestors.Count > Plist.MaxDepth)
+            throw new PlistFormatException($"Invalid plist file: objects nest deeper than {Plist.MaxDepth} levels.");
+
+        // every reference becomes a node of its own, so shared collections can expand exponentially
+        if (++readerState.NodeCount > readerState.MaxNodeCount)
+            throw new PlistFormatException($"Invalid plist file: shared objects expand to more than {readerState.MaxNodeCount} nodes.");
 
         readerState.Stream.Seek(readerState.NodeOffsets[nodeIndex], SeekOrigin.Begin);
         var node = ReadInternal(readerState);
@@ -232,5 +241,10 @@ internal class BinaryFormatReader
         public int OffsetIntSize { get; } = offsetIntSize;
         public int ObjectRefSize { get; } = objectRefSize;
         public HashSet<ulong> Ancestors { get; } = [];
+        public long NodeCount { get; set; }
+
+        // a file without shared collections follows each of its references once, so it has fewer nodes
+        // than bytes, while shared collections may expand up to the floor
+        public long MaxNodeCount { get; } = Math.Max(stream.Length, NodeCountFloor);
     }
 }

@@ -33,6 +33,10 @@ internal static class NodeFactory
     // CF$UID integer into a UID; Apple also turns other numbers into UIDs, lossily, which this skips
     public static PNode ReadXml(XmlReader reader)
     {
+        // the plist element is at depth 0, so the root node is at 1
+        if (reader.Depth > Plist.MaxDepth)
+            throw new PlistFormatException($"Invalid plist file: nodes nest deeper than {Plist.MaxDepth} levels.");
+
         var node = Create(reader.LocalName);
         node.ReadXml(reader);
 

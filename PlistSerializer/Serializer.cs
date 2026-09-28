@@ -21,7 +21,15 @@ public static class Serializer
     /// <param name="obj">The object to serialize.</param>
     /// <returns>The node representing <paramref name="obj"/>.</returns>
     public static PNode Serialize(object obj)
-        => obj switch
+        => Serialize(obj, 1);
+
+    // depth counts the node being built, so that a reference cycle throws instead of overflowing the stack
+    private static PNode Serialize(object obj, int depth)
+    {
+        if (depth > Plist.MaxDepth)
+            throw new PlistFormatException($"Objects nest deeper than {Plist.MaxDepth} levels at a {obj.GetType()}, which may be a reference cycle.");
+
+        return obj switch
         {
             PNode node => node,
             bool b => new BooleanNode(b),
@@ -39,13 +47,14 @@ public static class Serializer
             Uri uri => new StringNode(uri.OriginalString),
             _ when obj.GetType().IsPrimitive => new StringNode(Convert.ToString(obj, CultureInfo.InvariantCulture)),
             byte[] bytes => new DataNode(bytes),
-            IDictionary dict => SerializeDictionary(dict),
-            IEnumerable<KeyValuePair<string, object>> dict => SerializeDictionary(dict),
-            IEnumerable enumerable => SerializeEnumerable(enumerable),
-            _ => SerializeComplexType(obj)
+            IDictionary dict => SerializeDictionary(dict, depth),
+            IEnumerable<KeyValuePair<string, object>> dict => SerializeDictionary(dict, depth),
+            IEnumerable enumerable => SerializeEnumerable(enumerable, depth),
+            _ => SerializeComplexType(obj, depth)
         };
+    }
 
-    private static PNode SerializeComplexType(object obj)
+    private static PNode SerializeComplexType(object obj, int depth)
     {
         var dictNode = new DictionaryNode();
 
@@ -53,13 +62,13 @@ public static class Serializer
         {
             var value = member.Get(obj);
             if (value != null && (member.DefaultValue == null || !value.Equals(member.DefaultValue)))
-                dictNode.Add(member.Name, Serialize(value));
+                dictNode.Add(member.Name, Serialize(value, depth + 1));
         }
 
         return dictNode;
     }
 
-    private static PNode SerializeDictionary(IDictionary dict)
+    private static PNode SerializeDictionary(IDictionary dict, int depth)
     {
         var dictNode = new DictionaryNode();
 
@@ -68,13 +77,13 @@ public static class Serializer
             if (dict[key] is null)
                 continue;
 
-            dictNode.Add(key.ToString(), Serialize(dict[key]));
+            dictNode.Add(key.ToString(), Serialize(dict[key], depth + 1));
         }
 
         return dictNode;
     }
 
-    private static PNode SerializeDictionary(IEnumerable<KeyValuePair<string, object>> pairs)
+    private static PNode SerializeDictionary(IEnumerable<KeyValuePair<string, object>> pairs, int depth)
     {
         var dictNode = new DictionaryNode();
 
@@ -83,16 +92,16 @@ public static class Serializer
             if (value is null)
                 continue;
 
-            dictNode.Add(key, Serialize(value));
+            dictNode.Add(key, Serialize(value, depth + 1));
         }
 
         return dictNode;
     }
 
-    private static PNode SerializeEnumerable(IEnumerable list)
+    private static PNode SerializeEnumerable(IEnumerable list, int depth)
     {
         var node = new ArrayNode();
-        node.AddRange(list.Cast<object>().Where(x => x is not null).Select(Serialize));
+        node.AddRange(list.Cast<object>().Where(x => x is not null).Select(x => Serialize(x, depth + 1)));
         return node;
     }
 

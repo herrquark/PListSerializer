@@ -58,4 +58,26 @@ public class PlistSerializerTests
             Assert.Same(uid, res.Node);
         });
     }
+
+    [Fact]
+    public void Serialize_NestingLimit_Test()
+    {
+        // a reference cycle would otherwise recurse until the stack overflows, which ends the process
+        var cycle = new ClassWithClassSameType();
+        cycle.SameClass = cycle;
+        var listCycle = new List<object>();
+        listCycle.Add(listCycle);
+
+        var chain = new ClassWithClassSameType();
+        for (var i = 1; i < 512; i++)
+            chain = new ClassWithClassSameType { SameClass = chain };
+
+        Assert.Multiple(() =>
+        {
+            Assert.Throws<PlistFormatException>(() => Serializer.Serialize(cycle));
+            Assert.Throws<PlistFormatException>(() => Serializer.Serialize(listCycle));
+            Assert.IsType<DictionaryNode>(Serializer.Serialize(chain));
+            Assert.Throws<PlistFormatException>(() => Serializer.Serialize(new ClassWithClassSameType { SameClass = chain }));
+        });
+    }
 }

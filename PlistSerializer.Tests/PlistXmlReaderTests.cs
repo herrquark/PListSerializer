@@ -131,6 +131,20 @@ public class PlistXmlReaderTests
         => Assert.Equal(expected, Assert.IsType<RealNode>(LoadXml($"<real>{real}</real>")).Value);
 
     [Fact]
+    public void Load_XmlNestingLimit_Test()
+    {
+        // deeper recursion could overflow the stack, which ends the process instead of throwing
+        static string NestedArrays(int levels)
+            => string.Concat(Enumerable.Repeat("<array>", levels)) + string.Concat(Enumerable.Repeat("</array>", levels));
+
+        Assert.Multiple(() =>
+        {
+            Assert.IsType<ArrayNode>(LoadXml(NestedArrays(512)));
+            Assert.Throws<PlistFormatException>(() => LoadXml(NestedArrays(513)));
+        });
+    }
+
+    [Fact]
     public void Load_XmlUid_Test()
     {
         using var stream = File.OpenRead(Path.Combine("Resources", "github-7-xml.plist"));

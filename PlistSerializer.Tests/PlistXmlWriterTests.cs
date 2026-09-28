@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using PlistSerializer.Nodes;
 
@@ -151,6 +152,24 @@ public class PlistXmlWriterTests
         var serialized = Plist.ToString(root);
 
         Assert.Equal(source, serialized);
+    }
+
+    [Fact]
+    public void ToString_Date_Test()
+    {
+        // Apple and Python reject fractional seconds, and the Thai culture counts years in the Buddhist era
+        var node = new DateNode(new DateTime(2020, 1, 1, 0, 0, 0, 500, DateTimeKind.Utc));
+        var culture = CultureInfo.CurrentCulture;
+
+        try
+        {
+            CultureInfo.CurrentCulture = new CultureInfo("th-TH");
+            Assert.Equal("<date>2020-01-01T00:00:00Z</date>\n", Plist.ToString(node, writePlistMeta: false));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = culture;
+        }
     }
 
     [Fact]

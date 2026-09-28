@@ -34,8 +34,9 @@ public sealed class DateNode : PNode<DateTime>
     internal override void Parse(string data)
         => Value = DateTime.Parse(data, CultureInfo.InvariantCulture);
 
+    // Apple and Python reject fractional seconds in XML, so only binary keeps them
     internal override string ToXmlString()
-        => Value.ToUniversalTime().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss.ffffffZ");
+        => Value.ToUniversalTime().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'", CultureInfo.InvariantCulture);
 
     internal override void ReadBinary(Stream stream, int nodeLength)
     {

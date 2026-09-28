@@ -60,6 +60,38 @@ public class PlistSerializerTests
     }
 
     [Fact]
+    public void Serialize_HiddenMembers_Test()
+    {
+        var source = new ClassWithHiddenMembers { Value = "a", Field = "b" };
+        ((ClassWithHiddenMembersBase)source).Value = 1;
+        ((ClassWithHiddenMembersBase)source).Field = 2;
+
+        var node = Assert.IsType<DictionaryNode>(Serializer.Serialize(source));
+        var res = Deserializer.Deserialize<ClassWithHiddenMembers>(node);
+
+        // the members of the derived class hide those of the base, as in C#
+        Assert.Multiple(() =>
+        {
+            Assert.Equal(["Field", "Value"], node.Keys);
+            Assert.Equal("a", Assert.IsType<StringNode>(node["Value"]).Value);
+            Assert.Equal("b", Assert.IsType<StringNode>(node["Field"]).Value);
+            Assert.Equal("a", res.Value);
+        });
+    }
+
+    [Fact]
+    public void Serialize_SharedKey_Test()
+    {
+        var node = new DictionaryNode { ["Key"] = new IntegerNode(1) };
+
+        Assert.Multiple(() =>
+        {
+            Assert.Throws<PlistFormatException>(() => Serializer.Serialize(new ClassWithSharedKey()));
+            Assert.Throws<PlistFormatException>(() => Deserializer.Deserialize<ClassWithSharedKey>(node));
+        });
+    }
+
+    [Fact]
     public void Serialize_NestingLimit_Test()
     {
         // a reference cycle would otherwise recurse until the stack overflows, which ends the process

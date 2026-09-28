@@ -111,33 +111,26 @@ public static class Serializer
             return members;
 
         var props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-            .Where(p => p.IsPlistMember())
-            .Select(BuildGetterMember);
+            .Where(p => p.IsPlistMember());
 
-        var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public)
-            .Select(BuildGetterMember);
+        var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public);
 
-        members = [.. props.Concat(fields).OrderBy(g => g.Name, StringComparer.OrdinalIgnoreCase)];
+        members = [.. props.Concat<MemberInfo>(fields)
+            .ResolvePlistKeys()
+            .Select(BuildGetterMember)
+            .OrderBy(g => g.Name, StringComparer.OrdinalIgnoreCase)];
 
         MembersCache[type] = members;
 
         return members;
     }
 
-    private static GetterMember BuildGetterMember(PropertyInfo p)
+    private static GetterMember BuildGetterMember(MemberInfo m)
         => new()
         {
-            Name = p.GetName(),
-            Get = p.GetValue,
-            DefaultValue = p.GetCustomAttribute<DefaultValueAttribute>(false)?.Value
-        };
-
-    private static GetterMember BuildGetterMember(FieldInfo f)
-        => new()
-        {
-            Name = f.GetName(),
-            Get = f.GetValue,
-            DefaultValue = f.GetCustomAttribute<DefaultValueAttribute>(false)?.Value
+            Name = m.GetName(),
+            Get = m is PropertyInfo p ? p.GetValue : ((FieldInfo)m).GetValue,
+            DefaultValue = m.GetCustomAttribute<DefaultValueAttribute>(false)?.Value
         };
 
     private sealed class GetterMember

@@ -142,7 +142,7 @@ public static class Deserializer
         var instance = Activator.CreateInstance(resolvedType);
         var properties = resolvedType.GetProperties(BindingFlags.Instance | BindingFlags.Public)
             .Where(p => p.IsPlistMember())
-            .ToArray();
+            .ResolvePlistKeys();
 
         foreach (var (key, value) in dictionaryNode)
         {

@@ -31,7 +31,7 @@ The two classes were written separately and share only the reflection helpers in
 | Nodes | a `PNode` value is written as is, so a model can carry a `UidNode` | a member typed as `PNode` or a node class receives the node itself, or `null` if the node has another type; a `UidNode` converts to integer members like an integer |
 | Wrong input | — | inconsistent by type: a mismatched node or unparseable value yields `null`, a default or an exception, and a top-level value type throws `NullReferenceException`; test the exact case you depend on |
 
-Both sides key a member by its `[PlistName]`, else its C# name, through `GetName`, and skip indexers and get-only properties through `IsPlistMember` (`Extensions/PropertyInfoExtensions.cs`). The deserializer skips unknown keys. Object members are written sorted case-insensitively by key, while dictionaries keep their input order.
+Both sides key a member by its `[PlistName]`, else its C# name, through `GetName`, skip indexers and get-only properties through `IsPlistMember`, and settle clashes through `ResolvePlistKeys`, all in `Extensions/PropertyInfoExtensions.cs`. A member hidden with `new` gives way to the most derived one, as in C#, and two members still claiming one key throw `PlistFormatException`. The deserializer skips unknown keys. Object members are written sorted case-insensitively by key, while dictionaries keep their input order.
 
 ### Adding type support
 

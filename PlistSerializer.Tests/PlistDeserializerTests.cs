@@ -253,5 +253,33 @@ public class PlistDeserializerTests
 
         Assert.IsType<ResolverTestThree>(root.Cls);
     }
-}
 
+    [Fact]
+    public void Deserialize_Uid_Test()
+    {
+        var node = new DictionaryNode
+        {
+            [nameof(ClassWithUid.Unsigned)] = new UidNode(5),
+            [nameof(ClassWithUid.Signed)] = new UidNode(6),
+            [nameof(ClassWithUid.Nullable)] = new UidNode(7),
+            [nameof(ClassWithUid.Boxed)] = new UidNode(8),
+            [nameof(ClassWithUid.Node)] = new UidNode(9),
+            [nameof(ClassWithUid.AnyNode)] = new IntegerNode(10),
+        };
+        var mismatch = new DictionaryNode { [nameof(ClassWithUid.Node)] = new IntegerNode(9) };
+
+        var res = Deserializer.Deserialize<ClassWithUid>(node);
+
+        Assert.Multiple(() =>
+        {
+            Assert.Equal(5UL, res.Unsigned);
+            Assert.Equal(6, res.Signed);
+            Assert.Equal(7UL, res.Nullable);
+            Assert.Equal(8UL, res.Boxed);
+            Assert.Same(node[nameof(ClassWithUid.Node)], res.Node);
+            Assert.Same(node[nameof(ClassWithUid.AnyNode)], res.AnyNode);
+            Assert.Null(Deserializer.Deserialize<ClassWithUid>(mismatch).Node);
+            Assert.Equal(11UL, Deserializer.Deserialize<ulong>(new UidNode(11)));
+        });
+    }
+}

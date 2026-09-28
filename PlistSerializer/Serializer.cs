@@ -22,6 +22,7 @@ public static class Serializer
     public static PNode Serialize(object obj)
         => obj switch
         {
+            PNode node => node,
             bool b => new BooleanNode(b),
             int i => new IntegerNode(i),
             long l => new IntegerNode(l),

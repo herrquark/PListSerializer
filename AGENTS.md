@@ -17,6 +17,7 @@ PlistSerializer reads and writes Apple property lists and maps them to .NET obje
 - "Plist" is one word in every name (`Plist`, `PlistFormat`, `IsPlistMember`), because Apple never abbreviates "property list" as "PList". `PNode` is the one established exception.
 - Public API members carry XML docs; internal members and private helpers do not.
 - Private `static readonly` fields are PascalCase, private instance fields are `_camelCase`.
+- UID encoding differs from integers in both formats (byte count minus one in the binary marker, a `CF$UID` dict in XML) and Apple and Python disagree on its range. Read `docs/research/binary-plist-uid.md` before changing `UidNode`.
 
 ## Serializer and Deserializer are asymmetric
 
@@ -27,13 +28,14 @@ The two classes were written separately and share only the reflection helpers in
 | Members | public properties with a setter, and public fields | public properties with a setter; fields are never set |
 | Omitted | nulls (members, dictionary values, collection items) and values equal to `[DefaultValue]`; `0` and `false` are still written | a missing key leaves the member at its initial value |
 | Collections | any `IDictionary`, `IEnumerable<KeyValuePair<string, object>>` or `IEnumerable` | `T[]`, `List<T>`, `HashSet<T>`, `Dictionary<string, T>` and the interfaces listed in `TypeExtensions`, which get the concrete type; any other collection type comes back `null` from an array node and empty from a dict node, and a non-string dictionary key throws |
+| Nodes | a `PNode` value is written as is, so a model can carry a `UidNode` | a member typed as `PNode` or a node class receives the node itself, or `null` if the node has another type; a `UidNode` converts to integer members like an integer |
 | Wrong input | — | inconsistent by type: a mismatched node or unparseable value yields `null`, a default or an exception, and a top-level value type throws `NullReferenceException`; test the exact case you depend on |
 
 Both sides key a member by its `[PlistName]`, else its C# name, through `GetName`, and skip indexers and get-only properties through `IsPlistMember` (`Extensions/PropertyInfoExtensions.cs`). The deserializer skips unknown keys. Object members are written sorted case-insensitively by key, while dictionaries keep their input order.
 
 ### Adding type support
 
-Each side dispatches in one `switch` expression: `Serializer.Serialize` and `Deserializer.Deserialize(Type, PNode)`. Add an arm there, and place it carefully because the first match wins. `string` and `byte[]` are both `IEnumerable`, so their serializer arms come before the enumerable arm. In the deserializer, `IsArray` comes before the scalar arms so that `byte[]` takes `<data>`. Scalars without their own serializer arm (`short`, `uint`, `char`, and so on) are written as `<string>` and parsed back by `ConvertToType`, which unwraps `Nullable<T>`, handles `TimeSpan`/`Uri`/`Guid` specially, then tries `TypeConverter` and finally `Convert.ChangeType`.
+Each side dispatches in one `switch` expression: `Serializer.Serialize` and `Deserializer.Deserialize(Type, PNode)`. Add an arm there, and place it carefully because the first match wins. On both sides the first arm handles nodes, since `ArrayNode` and `DictionaryNode` would otherwise match the collection arms. `string` and `byte[]` are both `IEnumerable`, so their serializer arms come before the enumerable arm. In the deserializer, `IsArray` comes before the scalar arms so that `byte[]` takes `<data>`. Scalars without their own serializer arm (`short`, `uint`, `char`, and so on) are written as `<string>` and parsed back by `ConvertToType`, which unwraps `Nullable<T>`, handles `TimeSpan`/`Uri`/`Guid` specially, then tries `TypeConverter` and finally `Convert.ChangeType`.
 
 ### Type resolvers
 

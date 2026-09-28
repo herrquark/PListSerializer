@@ -38,4 +38,24 @@ public class PlistSerializerTests
         Assert.NotNull(node);
         Assert.Equal([nameof(ClassWithReadOnlyMembers.Name)], node.Keys);
     }
+
+    [Fact]
+    public void Serialize_Node_Test()
+    {
+        var uid = new UidNode(5);
+        var source = new ClassWithUid { Node = uid, AnyNode = new StringNode("a") };
+
+        var node = Serializer.Serialize(source) as DictionaryNode;
+        Assert.NotNull(node);
+
+        var res = Deserializer.Deserialize<ClassWithUid>(node);
+
+        Assert.Multiple(() =>
+        {
+            Assert.Same(uid, Serializer.Serialize(uid));
+            Assert.Same(uid, node[nameof(ClassWithUid.Node)]);
+            Assert.Same(source.AnyNode, node[nameof(ClassWithUid.AnyNode)]);
+            Assert.Same(uid, res.Node);
+        });
+    }
 }

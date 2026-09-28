@@ -23,6 +23,9 @@ public static class Deserializer
     private static object Deserialize(Type type, PNode node)
         => type switch
         {
+            // a node-typed target takes the node itself
+            _ when typeof(PNode).IsAssignableFrom(type) => type.IsInstanceOfType(node) ? node : null,
+
             _ when type.IsDictionary() => DeserializeDictionary(type, node),
             _ when type.IsArray => DeserializeArray(type, node),
             _ when type.IsList() => DeserializeList(type, node),
@@ -34,6 +37,7 @@ public static class Deserializer
             _ when node is StringNode stringNode => ConvertToType(stringNode.Value, type),
             _ when node is BooleanNode booleanNode => ConvertToType(booleanNode.Value, type),
             _ when node is DateNode dateNode => ConvertToType(dateNode.Value, type),
+            _ when node is UidNode uidNode => ConvertToType(uidNode.Value, type),
 
             _ => DeserializeObject(type, node)
         };

@@ -2,7 +2,15 @@
   <PropertyGroup>
     <Version>2.0.0</Version>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <Description>Read, write and serialize Apple *.plist files.</Description>
+    <Description>Read, write and serialize Apple *.plist files.
+
+Migrating to v2:
+- Update PListSerializer.Quark to PlistSerializer.Quark 2.0.0. NuGet treats these as the same package ID.
+- Remove any direct PListNet.Quark reference; its types are now included in this package.
+- Replace PListNet and PListSerializer.Core namespaces with PlistSerializer, PListNet.Nodes with PlistSerializer.Nodes, and PListSerializer.Core.Attributes with PlistSerializer.Attributes.
+- Rename PList, PListFormat and PListFormatException to Plist, PlistFormat and PlistFormatException.
+- Serializer and Deserializer are now static classes. Use Serializer.Serialize and Deserializer.Deserialize&lt;T&gt;.
+See the packaged README.md for the full migration guide and behavior changes.</Description>
     <Copyright>Copyright © 2009-2026</Copyright>
     <Authors>Vijay Santhanam, Christian Ecker, Michael Teper, maksgithub, Yury Quark</Authors>
     <PackageId>PlistSerializer.Quark</PackageId>

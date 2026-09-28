@@ -7,6 +7,10 @@
  - `PList`, `PListFormat` and `PListFormatException` are renamed to `Plist`, `PlistFormat` and `PlistFormatException`
  - `Serializer` and `Deserializer` are static classes
  - `LightXmlWriterExtensions`, `BinaryFormatWriter`, `XmlFormatReader` and `FillNode.GetSchema` are no longer public
+ - binary UIDs above 255 are written and read correctly: they were corrupt on write, and Apple's 4-byte UIDs were misread
+ - equal UIDs are written as separate binary objects, as Apple and Python write them
+ - UIDs are written to XML as `CF$UID` dicts, which Apple reads, instead of an escaped `<uid>` element, and such dicts load as `UidNode`
+ - the deserializer converts a `UidNode` to integer members, node-typed members receive the node itself, and the serializer writes node values as they are
 
 ## PListNet.Quark (merged into PlistSerializer.Quark 2.0.0)
 

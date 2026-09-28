@@ -39,12 +39,9 @@ public abstract class PNode<T> : PNode, IEquatable<PNode>
 
     internal override bool IsBinaryUnique => true;
 
+    // reads an empty element such as <string/> as an empty value
     internal override void ReadXml(XmlReader reader)
-    {
-        reader.ReadStartElement();
-        Parse(reader.ReadContentAsString());
-        reader.ReadEndElement();
-    }
+        => Parse(reader.ReadElementContentAsString());
 
     internal override void WriteXml(LightXmlWriter writer, int indent = 0)
     {

@@ -84,6 +84,26 @@ public class PlistXmlReaderTests
     }
 
     [Fact]
+    public void Load_XmlEmptyElements_Test()
+    {
+        // plutil reads both as empty strings
+        var root = Assert.IsType<DictionaryNode>(LoadXml("""
+            <dict>
+                <key>a</key>
+                <string/>
+                <key/>
+                <string>b</string>
+            </dict>
+            """));
+
+        Assert.Multiple(() =>
+        {
+            Assert.Equal("", Assert.IsType<StringNode>(root["a"]).Value);
+            Assert.Equal("b", Assert.IsType<StringNode>(root[""]).Value);
+        });
+    }
+
+    [Fact]
     public void Load_XmlUid_Test()
     {
         using var stream = File.OpenRead(Path.Combine("Resources", "github-7-xml.plist"));

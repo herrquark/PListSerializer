@@ -40,9 +40,8 @@ public class DictionaryNode : PNode, IDictionary<string, PNode>
 
         while (reader.NodeType != XmlNodeType.EndElement)
         {
-            reader.ReadStartElement("key");
-            var key = reader.ReadContentAsString();
-            reader.ReadEndElement();
+            // <key/> is the empty key
+            var key = reader.ReadElementContentAsString("key", string.Empty);
 
             reader.MoveToContent();
             Add(key, NodeFactory.ReadXml(reader));

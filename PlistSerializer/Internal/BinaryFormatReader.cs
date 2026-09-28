@@ -93,8 +93,15 @@ internal class BinaryFormatReader
 
     private PNode ReadInternal(ReaderState readerState, ulong nodeIndex)
     {
+        // an object that contains itself would recurse until the stack overflows
+        if (!readerState.Ancestors.Add(nodeIndex))
+            throw new PlistFormatException($"Invalid plist file: object {nodeIndex} contains itself.");
+
         readerState.Stream.Seek(readerState.NodeOffsets[nodeIndex], SeekOrigin.Begin);
-        return ReadInternal(readerState);
+        var node = ReadInternal(readerState);
+
+        readerState.Ancestors.Remove(nodeIndex);
+        return node;
     }
 
     private PNode ReadInternal(ReaderState readerState)
@@ -224,5 +231,6 @@ internal class BinaryFormatReader
         public int[] NodeOffsets { get; } = nodeOffsets;
         public int OffsetIntSize { get; } = offsetIntSize;
         public int ObjectRefSize { get; } = objectRefSize;
+        public HashSet<ulong> Ancestors { get; } = [];
     }
 }

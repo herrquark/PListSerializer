@@ -148,6 +148,15 @@ public class PlistBinaryReaderTests
         Assert.Equal(expected, node.Value);
     }
 
+    [Fact]
+    public void Load_BinaryCycle_Test()
+    {
+        // an array whose only item is the array itself
+        using var stream = new MemoryStream(WrapInBinaryPlist(Convert.FromHexString("A100")));
+
+        Assert.Throws<PlistFormatException>(() => Plist.Load(stream));
+    }
+
     // wraps a single object in the header, a one-entry offset table and the trailer of a binary plist
     private static byte[] WrapInBinaryPlist(byte[] rootObject)
     {
